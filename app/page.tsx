@@ -1,0 +1,140 @@
+import Link from "next/link";
+import Flash from "@/components/Flash";
+import StackChip from "@/components/StackChip";
+import { getHolds, getRooms, stackFor } from "@/lib/data";
+import {
+  addMonths,
+  daysInMonth,
+  fmtDate,
+  isValidMonth,
+  monthGrid,
+  monthKey,
+  monthLabel,
+  parseISO,
+  todayISO,
+} from "@/lib/dates";
+import { requireStaff } from "@/lib/session";
+
+type Search = Promise<{ m?: string; view?: string; room?: string; error?: string }>;
+
+export default async function CalendarPage({ searchParams }: { searchParams: Search }) {
+  await requireStaff();
+  const sp = await searchParams;
+  const today = todayISO();
+  const m = isValidMonth(sp.m) ? sp.m : monthKey(today);
+  const view = sp.view === "rooms" ? "rooms" : "month";
+
+  const allRooms = await getRooms();
+  const roomFilter = allRooms.some((r) => r.id === sp.room) ? sp.room! : "all";
+  const rooms = roomFilter === "all" ? allRooms : allRooms.filter((r) => r.id === roomFilter);
+
+  const grid = monthGrid(m);
+  const from = view === "month" ? grid[0][0] : `${m}-01`;
+  const to = view === "month" ? grid[grid.length - 1][6] : daysInMonth(m).at(-1)!;
+  const holds = await getHolds(from, to);
+
+  const link = (over: Record<string, string>) => {
+    const p = new URLSearchParams({ m, view, room: roomFilter, ...over });
+    return `/?${p.toString()}`;
+  };
+
+  return (
+    <>
+      <Flash error={sp.error} />
+      <div className="toolbar">
+        <Link className="button-link" href={link({ m: addMonths(m, -1) })}>
+          ←
+        </Link>
+        <h1>{monthLabel(m)}</h1>
+        <Link className="button-link" href={link({ m: addMonths(m, 1) })}>
+          →
+        </Link>
+        <Link className="button-link" href={link({ m: monthKey(today) })}>
+          Today
+        </Link>
+        <div className="spacer" />
+        <div className="seg">
+          <Link className={view === "month" ? "on" : ""} href={link({ view: "month" })}>
+            Month
+          </Link>
+          <Link className={view === "rooms" ? "on" : ""} href={link({ view: "rooms" })}>
+            Rooms side-by-side
+          </Link>
+        </div>
+        <div className="seg">
+          <Link className={roomFilter === "all" ? "on" : ""} href={link({ room: "all" })}>
+            All rooms
+          </Link>
+          {allRooms.map((r) => (
+            <Link key={r.id} className={roomFilter === r.id ? "on" : ""} href={link({ room: r.id })}>
+              {r.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div className="legend" style={{ marginBottom: 10 }}>
+        <span style={{ ["--c" as string]: "#dedfe8" }}>H1</span>
+        <span style={{ ["--c" as string]: "#eeeee9" }}>Hold</span>
+        <span style={{ ["--c" as string]: "var(--offer-bg)" }}>Offer out</span>
+        <span style={{ ["--c" as string]: "var(--challenge-bg)" }}>Challenge running</span>
+        <span style={{ ["--c" as string]: "var(--confirmed-bg)" }}>Confirmed</span>
+        <span style={{ ["--c" as string]: "var(--rental)" }}>Rental (left stripe)</span>
+      </div>
+
+      {view === "month" ? (
+        <div className="month">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+            <div key={d} className="dow">
+              {d}
+            </div>
+          ))}
+          {grid.flat().map((d) => (
+            <Link
+              key={d}
+              href={`/day/${d}`}
+              className={["day", monthKey(d) !== m ? "out" : "", d === today ? "today" : ""].join(" ")}
+            >
+              <span className="num">{parseISO(d).getUTCDate()}</span>
+              {rooms.map((r) => (
+                <StackChip key={r.id} room={r.id} stack={stackFor(holds, r.id, d)} showRoom={rooms.length > 1} />
+              ))}
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <table className="rooms">
+          <thead>
+            <tr>
+              <th>Date</th>
+              {rooms.map((r) => (
+                <th key={r.id}>{r.name}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {daysInMonth(m).map((d) => {
+              const dow = parseISO(d).getUTCDay();
+              return (
+                <tr key={d} className={dow === 0 || dow >= 5 ? "weekend" : ""}>
+                  <td className="date">
+                    <Link href={`/day/${d}`}>{fmtDate(d, { year: undefined })}</Link>
+                  </td>
+                  {rooms.map((r) => {
+                    const s = stackFor(holds, r.id, d);
+                    const open = !s.confirmed && s.active.length === 0;
+                    return (
+                      <td key={r.id} className={open ? "open" : ""}>
+                        {open ? "Open" : <StackChip room={r.id} stack={s} showRoom={false} full />}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </>
+  );
+}
