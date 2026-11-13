@@ -16,6 +16,7 @@ function back(form: FormData, params: Record<string, string> = {}): never {
   url.searchParams.delete("released");
   url.searchParams.delete("ok");
   url.searchParams.delete("confirmed");
+  url.searchParams.delete("release");
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   redirect(url.pathname + url.search);
 }
@@ -150,7 +151,9 @@ export async function releaseHolds(form: FormData) {
   }
   let to = str(form, "doneTo") || "/";
   if (!to.startsWith("/") || to.startsWith("//")) to = "/";
-  redirect(`${to}?ok=${encodeURIComponent(`Confirmed, and released ${ids.length} other hold${ids.length === 1 ? "" : "s"}.`)}`);
+  const n = `${ids.length} hold${ids.length === 1 ? "" : "s"}`;
+  const msg = str(form, "mode") === "release" ? `Released ${n}.` : `Confirmed, and released ${ids.length} other ${ids.length === 1 ? "hold" : "holds"}.`;
+  redirect(`${to}?ok=${encodeURIComponent(msg)}`);
 }
 
 export async function confirmHold(form: FormData) {

@@ -13,7 +13,7 @@ import type { Hold } from "@/lib/types";
 
 type Props = {
   params: Promise<{ date: string }>;
-  searchParams: Promise<{ error?: string; ok?: string; released?: string; confirmed?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; released?: string; confirmed?: string; release?: string }>;
 };
 
 export default async function DayPage({ params, searchParams }: Props) {
@@ -50,12 +50,14 @@ export default async function DayPage({ params, searchParams }: Props) {
     ).length;
   // After "Confirm": the artist's other upcoming holds, for the release pop-up.
   const justConfirmed = sp.confirmed ? byId.get(sp.confirmed) : undefined;
+  const releaseFrom = sp.release ? byId.get(sp.release) : undefined;
+  const pivot = justConfirmed?.status === "confirmed" ? justConfirmed : releaseFrom;
   let others: Hold[] = [];
-  if (justConfirmed?.status === "confirmed") {
+  if (pivot) {
     const { data: o } = await supabase
       .from("holds")
       .select("*")
-      .ilike("title", justConfirmed.title.replace(/[%_\\]/g, "\\$&"))
+      .ilike("title", pivot.title.replace(/[%_\\]/g, "\\$&"))
       .in("status", ["hold", "offer_out"])
       .gte("date", today)
       .order("date");
@@ -82,10 +84,16 @@ export default async function DayPage({ params, searchParams }: Props) {
         <Link href={`/?m=${monthKey(date)}`}>Back to calendar</Link>
       </div>
 
-      {justConfirmed && others.length > 0 ? (
+      {pivot && others.length > 0 ? (
         <>
           <Flash error={sp.error} />
-          <ConfirmReleaseModal confirmed={justConfirmed} others={others} releasedHere={sp.released} date={date} />
+          <ConfirmReleaseModal
+            confirmed={pivot}
+            others={others}
+            releasedHere={sp.released}
+            date={date}
+            mode={pivot === justConfirmed ? "confirm" : "release"}
+          />
         </>
       ) : (
         <Flash error={sp.error} ok={sp.ok} released={sp.released} />

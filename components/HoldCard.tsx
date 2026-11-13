@@ -6,7 +6,6 @@ import {
   challengeHolds,
   confirmHold,
   moveHold,
-  releaseArtist,
   releaseHold,
   setOfferOut,
 } from "@/lib/actions";
@@ -151,24 +150,17 @@ export default function HoldCard({
             <input name="reason" placeholder="Reason (optional)" aria-label="Reason" />
             <button className="danger">{confirmed ? "Cancel date" : "Release"}</button>
           </form>
+          {!confirmed && artistHoldCount > 1 && (
+            <Link className="button-link danger-link" href={`/day/${hold.date}?release=${hold.id}`}>
+              Release holds… ({artistHoldCount})
+            </Link>
+          )}
           <Link className="button-link" href={`/hold/${hold.id}/edit`}>
             Edit
           </Link>
         </div>
       )}
 
-      {canBook && artistHoldCount > 1 && (
-        <details className="release-all">
-          <summary>Release all {artistHoldCount} holds for {hold.title}…</summary>
-          <form action={releaseArtist} className="inline-form">
-            <input type="hidden" name="title" value={hold.title} />
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <input name="reason" placeholder="Reason (optional)" aria-label="Reason" />
-            <button className="danger">Release all {artistHoldCount}</button>
-          </form>
-          <div className="muted small">Every upcoming hold in all rooms. Confirmed dates are not affected.</div>
-        </details>
-      )}
     </div>
   );
 }
