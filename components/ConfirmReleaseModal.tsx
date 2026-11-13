@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { releaseHolds } from "@/lib/actions";
-import { fmtDate } from "@/lib/dates";
+import { fmtDate, todayISO } from "@/lib/dates";
 import { ROOM_COLOR, ROOM_SHORT } from "@/lib/stack";
 import type { Hold } from "@/lib/types";
 
@@ -21,6 +21,7 @@ export default function ConfirmReleaseModal({
   mode?: "confirm" | "release";
 }) {
   const isConfirm = mode === "confirm";
+  const today = todayISO();
   const closeHref = isConfirm ? `/day/${date}?ok=${encodeURIComponent("Confirmed.")}` : `/day/${date}`;
   return (
     <div className="modal-backdrop">
@@ -45,12 +46,12 @@ export default function ConfirmReleaseModal({
         <div>
           {isConfirm ? (
             <>
-              {confirmed.title} still has <strong>{others.length}</strong> other upcoming hold
+              {confirmed.title} still has <strong>{others.length}</strong> other hold
               {others.length === 1 ? "" : "s"}. Select the ones to release:
             </>
           ) : (
             <>
-              {confirmed.title} has <strong>{others.length}</strong> upcoming hold{others.length === 1 ? "" : "s"}.
+              {confirmed.title} has <strong>{others.length}</strong> hold{others.length === 1 ? "" : "s"} across all rooms.
               Select the ones to release. Confirmed dates aren’t listed.
             </>
           )}
@@ -76,6 +77,7 @@ export default function ConfirmReleaseModal({
                   {ROOM_SHORT[h.room_id]}
                 </span>
                 <span>{fmtDate(h.date)}</span>
+                {h.date < today && <span className="tag-past">past date</span>}
                 <span className="muted">
                   H{h.rank}
                   {h.status === "offer_out" ? " · offer out" : ""}

@@ -5,7 +5,7 @@ import ConfirmReleaseModal from "@/components/ConfirmReleaseModal";
 import Flash from "@/components/Flash";
 import HoldCard from "@/components/HoldCard";
 import { getRooms, stackFor } from "@/lib/data";
-import { ROOM_COLOR, holdsEmailText, type EmailHold } from "@/lib/stack";
+import { ROOM_COLOR, holdsEmailText } from "@/lib/stack";
 import { addDays, fmtDate, isValidISO, monthKey, todayISO } from "@/lib/dates";
 import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -33,42 +33,33 @@ export default async function DayPage({ params, searchParams }: Props) {
 
   const byId = new Map(holds.map((h) => [h.id, h]));
 
-  // Each artist's holds in every room (from this date or today, whichever is
-  // earlier), matched on name ignoring capitals and extra spaces.
-  // Used for "Copy for email" and the "Release holds…" count.
+  // Every active or confirmed hold, matched to artists by name (ignoring capitals
+  // and extra spaces). One list feeds the Release holds count, its pop-up and
+  // Copy for email, so they always agree.
   const today = todayISO();
   const norm = (t: string) => t.trim().replace(/\s+/g, " ").toLowerCase();
-  const { data: artistRows } = holds.some((h) => h.status !== "released")
+  const { data: artistData } = holds.some((h) => h.status !== "released")
     ? await supabase
         .from("holds")
-        .select("title,date,room_id,rank,status")
-        .gte("date", date < today ? date : today)
+        .select("*")
         .in("status", ["hold", "offer_out", "confirmed"])
+        .order("date")
     : { data: [] };
-  const rowsFor = (title: string) =>
-    ((artistRows ?? []) as (EmailHold & { title: string })[]).filter((r) => norm(r.title) === norm(title));
-  const activeCount = (title: string) =>
-    rowsFor(title).filter((r) => r.date >= today && (r.status === "hold" || r.status === "offer_out")).length;
-  // After "Confirm": the artist's other upcoming holds, for the release pop-up.
+  const artistRows = (artistData ?? []) as Hold[];
+  const rowsFor = (title: string) => artistRows.filter((r) => norm(r.title) === norm(title));
+  // Holds that can still be released: everything not confirmed, past dates included.
+  const releasable = (title: string) => rowsFor(title).filter((r) => r.status === "hold" || r.status === "offer_out");
+  const activeCount = (title: string) => releasable(title).length;
+
+  // After "Confirm", or from "Release holds…": the list for the pop-up.
   const justConfirmed = sp.confirmed ? byId.get(sp.confirmed) : undefined;
   const releaseFrom = sp.release ? byId.get(sp.release) : undefined;
   const pivot = justConfirmed?.status === "confirmed" ? justConfirmed : releaseFrom;
-  let others: Hold[] = [];
-  if (pivot) {
-    const { data: o } = await supabase
-      .from("holds")
-      .select("*")
-      .ilike("title", pivot.title.trim().replace(/[%_\\]/g, "\\$&"))
-      .in("status", ["hold", "offer_out"])
-      .gte("date", today)
-      .order("date");
-    others = (o ?? []) as Hold[];
-    if (pivot === releaseFrom && releaseFrom && !others.some((h) => h.id === releaseFrom.id)) {
-      others = [releaseFrom, ...others]; // past-dated hold opened from its own day
-    }
-  }
+  const others: Hold[] = pivot ? releasable(pivot.title) : [];
 
-  const emailFor = (title: string) => holdsEmailText(title, rowsFor(title));
+  // Email list: from this date or today (whichever is earlier) onward.
+  const emailFor = (title: string) =>
+    holdsEmailText(title, rowsFor(title).filter((r) => r.date >= (date < today ? date : today)));
   const returnTo = `/day/${date}`;
 
   return (
