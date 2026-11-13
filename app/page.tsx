@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Flash from "@/components/Flash";
+import MonthGrid from "@/components/MonthGrid";
 import StackChip from "@/components/StackChip";
 import { getHolds, getRooms, stackFor } from "@/lib/data";
 import {
@@ -18,7 +19,7 @@ import { requireStaff } from "@/lib/session";
 type Search = Promise<{ m?: string; view?: string; room?: string; error?: string }>;
 
 export default async function CalendarPage({ searchParams }: { searchParams: Search }) {
-  await requireStaff();
+  const staff = await requireStaff();
   const sp = await searchParams;
   const today = todayISO();
   const m = isValidMonth(sp.m) ? sp.m : monthKey(today);
@@ -83,25 +84,15 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
       </div>
 
       {view === "month" ? (
-        <div className="month">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-            <div key={d} className="dow">
-              {d}
-            </div>
-          ))}
-          {grid.flat().map((d) => (
-            <Link
-              key={d}
-              href={`/day/${d}`}
-              className={["day", monthKey(d) !== m ? "out" : "", d === today ? "today" : ""].join(" ")}
-            >
-              <span className="num">{parseISO(d).getUTCDate()}</span>
-              {rooms.map((r) => (
-                <StackChip key={r.id} room={r.id} stack={stackFor(holds, r.id, d)} showRoom={rooms.length > 1} />
-              ))}
-            </Link>
-          ))}
-        </div>
+        <MonthGrid
+          m={m}
+          today={today}
+          weeks={grid}
+          allRooms={allRooms}
+          rooms={rooms}
+          holds={holds}
+          canBook={staff.canBook}
+        />
       ) : (
         <table className="rooms">
           <thead>
@@ -125,7 +116,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
                     const open = !s.confirmed && s.active.length === 0;
                     return (
                       <td key={r.id} className={open ? "open" : ""}>
-                        {open ? "Open" : <StackChip room={r.id} stack={s} showRoom={false} full />}
+                        {open ? "Open" : <StackChip room={r.id} stack={s} showRoom={false} />}
                       </td>
                     );
                   })}

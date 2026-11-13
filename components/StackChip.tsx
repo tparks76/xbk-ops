@@ -1,17 +1,15 @@
-import type { Stack } from "@/lib/data";
-import { ROOM_SHORT } from "@/lib/data";
+import type { Stack } from "@/lib/stack";
+import { ROOM_SHORT } from "@/lib/stack";
 
-// One-line summary of a room's holds on a date, for calendar cells.
+// A room's holds on a date for calendar cells: one line per hold, in rank order.
 export default function StackChip({
   room,
   stack,
   showRoom,
-  full = false,
 }: {
   room: string;
   stack: Stack;
   showRoom: boolean;
-  full?: boolean;
 }) {
   const label = showRoom ? <span className="room">{ROOM_SHORT[room] ?? room}</span> : null;
 
@@ -23,27 +21,22 @@ export default function StackChip({
       </div>
     );
   }
-  if (stack.active.length === 0) return null;
-
-  const challenged = stack.active.some((h) => h.challenge_deadline);
-  const list = full ? stack.active : stack.active.slice(0, 1);
 
   return (
     <>
-      {list.map((h, i) => (
+      {stack.active.map((h) => (
         <div
           key={h.id}
           className={[
             "chip",
             h.rank === 1 ? "h1" : "",
             h.status === "offer_out" ? "offer" : "",
-            h.challenge_deadline || (challenged && !full && i === 0) ? "challenged" : "",
+            h.challenge_deadline ? "challenged" : "",
             h.kind === "rental" ? "rental" : "",
           ].join(" ")}
-          title={stack.active.map((x) => `H${x.rank} ${x.title}`).join("\n")}
+          title={`H${h.rank} ${h.title}${h.agent_name ? ` — ${h.agent_name}` : ""}`}
         >
-          {i === 0 && label}H{h.rank} {h.title}
-          {!full && stack.active.length > 1 && <span className="more">+{stack.active.length - 1}</span>}
+          {label}H{h.rank} {h.title}
         </div>
       ))}
     </>
