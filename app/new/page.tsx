@@ -32,19 +32,12 @@ export default async function NewHoldPage({ searchParams }: { searchParams: Sear
             ))}
           </select>
         </label>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Date(s)</div>
-          <div className="row">
-            <input type="date" name="date" required defaultValue={date} aria-label="Date" />
-            <input type="date" name="date" aria-label="Alternate date" />
-            <input type="date" name="date" aria-label="Alternate date" />
-          </div>
-          <div className="muted small" style={{ marginTop: 4 }}>
-            Add alternates for “3/14, 3/15 or 3/16” requests — each date gets its own hold, grouped together.
-          </div>
-        </div>
+        <label>
+          Date
+          <input type="date" name="date" required defaultValue={date} />
+        </label>
         <HoldFields />
-        <div className="muted small">New holds go in at H2 (or the next open rank). Promote to H1 from the date page.</div>
+        <div className="muted small">New holds go in at H2 (or the next open rank). To hold several dates for one artist, select them on the calendar.</div>
         <div>
           <button className="primary">Place hold</button>
         </div>
