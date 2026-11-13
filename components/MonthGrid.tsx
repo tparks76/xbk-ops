@@ -89,7 +89,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
                 {parseISO(d).getUTCDate()}
               </Link>
               {rooms.map((r) => (
-                <StackChip key={r.id} room={r.id} stack={stackFor(holds, r.id, d)} showRoom={rooms.length > 1} />
+                <StackChip key={r.id} room={r.id} date={d} stack={stackFor(holds, r.id, d)} showRoom={rooms.length > 1} />
               ))}
             </div>
           );

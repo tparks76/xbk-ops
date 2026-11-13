@@ -46,6 +46,7 @@ export default function HoldCard({
 
   return (
     <div
+      id={`hold-${hold.id}`}
       className={[
         "hold",
         confirmed ? "is-confirmed" : "",

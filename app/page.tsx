@@ -136,7 +136,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
                     const open = !s.confirmed && s.active.length === 0;
                     return (
                       <td key={r.id} className={open ? "open" : ""}>
-                        {open ? "Open" : <StackChip room={r.id} stack={s} showRoom={false} />}
+                        {open ? "Open" : <StackChip room={r.id} date={d} stack={s} showRoom={false} />}
                       </td>
                     );
                   })}
