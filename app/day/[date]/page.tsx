@@ -42,6 +42,11 @@ export default async function DayPage({ params, searchParams }: Props) {
         .gte("date", date < todayISO() ? date : todayISO())
         .in("status", ["hold", "offer_out", "confirmed"])
     : { data: [] };
+  const today = todayISO();
+  const activeCount = (title: string) =>
+    ((artistRows ?? []) as (EmailHold & { title: string })[]).filter(
+      (r) => r.title === title && r.date >= today && (r.status === "hold" || r.status === "offer_out"),
+    ).length;
   const emailFor = (title: string) =>
     holdsEmailText(
       title,
@@ -111,6 +116,7 @@ export default async function DayPage({ params, searchParams }: Props) {
                   challengerTitle={h.challenged_by ? byId.get(h.challenged_by)?.title : undefined}
                   isChallenging={stack.active.some((x) => x.challenged_by === h.id)}
                   emailText={emailFor(h.title)}
+                  artistHoldCount={activeCount(h.title)}
                 />
               ))}
             </section>

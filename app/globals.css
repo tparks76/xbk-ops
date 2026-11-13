@@ -181,3 +181,7 @@ a.num:hover { background: #e2e1dc; text-decoration: none; }
 a.chip { display: block; text-decoration: none; }
 a.chip:hover { text-decoration: none; filter: brightness(0.94); }
 .hold:target { outline: 3px solid #f2c94c; outline-offset: 2px; scroll-margin-top: 80px; }
+.release-all { margin-top: 2px; font-size: 12px; }
+.release-all summary { cursor: pointer; color: var(--challenge); }
+.release-all form { margin: 6px 0 4px; }
+.release-all input[name="reason"] { width: 160px; font-size: 12px; }

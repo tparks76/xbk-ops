@@ -126,6 +126,16 @@ export async function releaseHold(form: FormData) {
   back(form, { ok: "Released." });
 }
 
+export async function releaseArtist(form: FormData) {
+  const title = str(form, "title");
+  const released = (await rpc(form, "release_artist", {
+    p_title: title,
+    p_reason: str(form, "reason"),
+  })) as unknown[] | null;
+  const n = released?.length ?? 0;
+  back(form, { ok: `Released ${n} hold${n === 1 ? "" : "s"} for ${title}.` });
+}
+
 export async function confirmHold(form: FormData) {
   const released = (await rpc(form, "confirm_hold", { p_id: str(form, "id") })) as
     | { title: string; agent_name: string | null; agent_email: string | null }[]

@@ -6,6 +6,7 @@ import {
   challengeHolds,
   confirmHold,
   moveHold,
+  releaseArtist,
   releaseHold,
   setOfferOut,
 } from "@/lib/actions";
@@ -20,6 +21,7 @@ type Props = {
   challengerTitle?: string; // title of the hold challenging this one
   isChallenging: boolean; // this hold has an open challenge on others
   emailText?: string; // this artist's upcoming holds, for pasting into an email
+  artistHoldCount?: number; // this artist's upcoming active holds, all rooms
 };
 
 function Hidden({ hold, returnTo }: { hold: Hold; returnTo: string }) {
@@ -40,6 +42,7 @@ export default function HoldCard({
   challengerTitle,
   isChallenging,
   emailText,
+  artistHoldCount = 0,
 }: Props) {
   const rank = hold.rank ?? 0;
   const confirmed = hold.status === "confirmed";
@@ -152,6 +155,19 @@ export default function HoldCard({
             Edit
           </Link>
         </div>
+      )}
+
+      {canBook && artistHoldCount > 1 && (
+        <details className="release-all">
+          <summary>Release all {artistHoldCount} holds for {hold.title}…</summary>
+          <form action={releaseArtist} className="inline-form">
+            <input type="hidden" name="title" value={hold.title} />
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <input name="reason" placeholder="Reason (optional)" aria-label="Reason" />
+            <button className="danger">Release all {artistHoldCount}</button>
+          </form>
+          <div className="muted small">Every upcoming hold in all rooms. Confirmed dates are not affected.</div>
+        </details>
       )}
     </div>
   );

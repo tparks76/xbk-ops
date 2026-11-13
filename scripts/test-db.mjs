@@ -8,7 +8,11 @@ await db.exec(`
   create function auth.jwt() returns jsonb language sql stable as
     $$ select coalesce(nullif(current_setting('test.jwt', true), ''), '{}')::jsonb $$;
 `);
-await db.exec(readFileSync(process.argv[2] ?? new URL('../supabase/migrations/0001_booking_calendar.sql', import.meta.url), 'utf8'));
+import { readdirSync } from 'node:fs';
+const dir = new URL('../supabase/migrations/', import.meta.url);
+for (const f of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
+  await db.exec(readFileSync(new URL(f, dir), 'utf8'));
+}
 await db.exec(`insert into staff values ('tobi@xbk.com','Tobi','owner'),('bill@xbk.com','Bill','booker'),('mod@xbk.com','Mo','mod');`);
 
 const as = (email) => db.exec(`set test.jwt = '${JSON.stringify({ email })}'`);
@@ -87,6 +91,23 @@ await as('stranger@gmail.com');
 ok((await err(() => q(`select * from place_hold('xbk','2027-05-01','Nope')`))) !== null, 'stranger cannot place holds');
 await as('tobi@xbk.com');
 ok((await q(`select * from place_hold('xbk','2027-05-01','OwnerHold')`))[0].placed_by === 'tobi@xbk.com', 'owner can place');
+
+// release all holds for an artist (case-insensitive, keeps confirmed, closes gaps)
+await as('bill@xbk.com');
+const R1 = '2027-06-01', R2 = '2027-06-02';
+await q(`select * from place_hold('xbk',$1,'Other')`, [R1]);
+const z1 = (await q(`select * from place_hold('xbk',$1,'Zulu')`, [R1]))[0];
+const z2 = (await q(`select * from place_hold('annex',$1,'Zulu')`, [R2]))[0];
+await q(`select * from place_hold('xbk',$1,'Behind')`, [R1]);
+const z3 = (await q(`select * from place_hold('idc',$1,'Zulu')`, [R2]))[0];
+await q(`select * from confirm_hold($1)`, [z3.id]);
+const rel2 = await q(`select * from release_artist('zulu', null)`);
+ok(rel2.length === 2, 'release_artist released 2 holds: ' + rel2.length);
+ok(await stack('xbk', R1) === 'Other:H2 Behind:H3', 'gap closed after artist release: ' + await stack('xbk', R1));
+ok((await q(`select status from holds where id=$1`, [z3.id]))[0].status === 'confirmed', 'confirmed date untouched');
+await as('mod@xbk.com');
+ok((await err(() => q(`select * from release_artist('Other')`))) !== null, 'MOD cannot release artist');
+await as('tobi@xbk.com');
 
 const ev = await q(`select count(*)::int n from hold_events`);
 ok(ev[0].n > 15, 'activity logged: ' + ev[0].n);
