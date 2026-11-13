@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Flash from "@/components/Flash";
+import ChallengesPanel from "@/components/ChallengesPanel";
 import MonthGrid from "@/components/MonthGrid";
 import StackChip from "@/components/StackChip";
 import { getHolds, getRooms, stackFor } from "@/lib/data";
@@ -15,6 +16,8 @@ import {
   todayISO,
 } from "@/lib/dates";
 import { requireStaff } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
+import type { Hold } from "@/lib/types";
 
 type Search = Promise<{ m?: string; view?: string; room?: string; error?: string }>;
 
@@ -34,6 +37,21 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   const to = view === "month" ? grid[grid.length - 1][6] : daysInMonth(m).at(-1)!;
   const holds = await getHolds(from, to);
 
+  // Every running challenge from today on, whatever month is showing.
+  const supabase = await createClient();
+  const { data: chRows } = await supabase
+    .from("holds")
+    .select("*")
+    .gte("date", today)
+    .in("status", ["hold", "offer_out"])
+    .not("challenge_deadline", "is", null);
+  const challenged = (chRows ?? []) as Hold[];
+  const challengerIds = [...new Set(challenged.map((h) => h.challenged_by).filter(Boolean))] as string[];
+  const { data: chBy } = challengerIds.length
+    ? await supabase.from("holds").select("id,title").in("id", challengerIds)
+    : { data: [] };
+  const challengerTitles = new Map((chBy ?? []).map((h: { id: string; title: string }) => [h.id, h.title]));
+
   const link = (over: Record<string, string>) => {
     const p = new URLSearchParams({ m, view, room: roomFilter, ...over });
     return `/?${p.toString()}`;
@@ -42,6 +60,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   return (
     <>
       <Flash error={sp.error} />
+      <ChallengesPanel challenged={challenged} titles={challengerTitles} />
       <div className="toolbar">
         <Link className="button-link" href={link({ m: addMonths(m, -1) })}>
           ←
