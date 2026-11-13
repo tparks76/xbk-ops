@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
+import CopyButton from "@/components/CopyButton";
 import HoldFields from "@/components/HoldFields";
 import StackChip from "@/components/StackChip";
 import { placeHoldsFromCalendar, type CalendarHoldState } from "@/lib/actions";
 import { fmtDate, monthKey, parseISO } from "@/lib/dates";
-import { nextRank, stackFor } from "@/lib/stack";
+import { holdsEmailText, nextRank, stackFor } from "@/lib/stack";
 import type { Hold, Room } from "@/lib/types";
 
 type Props = {
@@ -25,7 +26,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
   const [selected, setSelected] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [room, setRoom] = useState(rooms.length === 1 ? rooms[0].id : allRooms[0]?.id ?? "xbk");
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, setFlash] = useState<{ text: string; email: string } | null>(null);
   const [state, formAction, pending] = useActionState<CalendarHoldState, FormData>(
     placeHoldsFromCalendar,
     {},
@@ -36,10 +37,10 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
     if (state.done) {
       setOpen(false);
       setSelected([]);
-      setFlash(state.ok ?? null);
+      setFlash({ text: state.ok ?? "", email: holdsEmailText(state.title ?? "", state.placed ?? []) });
       router.refresh();
     }
-  }, [state.done, state.ok, router]);
+  }, [state.done, state.ok, state.title, state.placed, router]);
 
   const sorted = useMemo(() => [...selected].sort(), [selected]);
 
@@ -50,7 +51,12 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
 
   return (
     <>
-      {flash && <div className="flash ok">{flash}</div>}
+      {flash && (
+        <div className="flash ok flash-row">
+          <span>{flash.text}</span>
+          <CopyButton text={flash.email} />
+        </div>
+      )}
       {canBook && (
         <div className="muted small" style={{ marginBottom: 6 }}>
           Click days to select them for a hold · click a date number to open that day

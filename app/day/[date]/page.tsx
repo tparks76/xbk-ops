@@ -4,8 +4,8 @@ import ChallengesPanel from "@/components/ChallengesPanel";
 import Flash from "@/components/Flash";
 import HoldCard from "@/components/HoldCard";
 import { getRooms, stackFor } from "@/lib/data";
-import { ROOM_COLOR } from "@/lib/stack";
-import { addDays, fmtDate, isValidISO, monthKey } from "@/lib/dates";
+import { ROOM_COLOR, holdsEmailText, type EmailHold } from "@/lib/stack";
+import { addDays, fmtDate, isValidISO, monthKey, todayISO } from "@/lib/dates";
 import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { Hold } from "@/lib/types";
@@ -31,6 +31,22 @@ export default async function DayPage({ params, searchParams }: Props) {
   const holds = (holdRows ?? []) as Hold[];
 
   const byId = new Map(holds.map((h) => [h.id, h]));
+
+  // Each artist's upcoming holds in every room, for "Copy for email".
+  const titles = [...new Set(holds.filter((h) => h.status !== "released").map((h) => h.title))];
+  const { data: artistRows } = titles.length
+    ? await supabase
+        .from("holds")
+        .select("title,date,room_id,rank,status")
+        .in("title", titles)
+        .gte("date", date < todayISO() ? date : todayISO())
+        .in("status", ["hold", "offer_out", "confirmed"])
+    : { data: [] };
+  const emailFor = (title: string) =>
+    holdsEmailText(
+      title,
+      ((artistRows ?? []) as (EmailHold & { title: string })[]).filter((r) => r.title === title),
+    );
   const returnTo = `/day/${date}`;
 
   return (
@@ -74,6 +90,7 @@ export default async function DayPage({ params, searchParams }: Props) {
                   maxRank={0}
                   minRank={0}
                   isChallenging={false}
+                  emailText={emailFor(stack.confirmed.title)}
                 />
               )}
 
@@ -93,6 +110,7 @@ export default async function DayPage({ params, searchParams }: Props) {
                   minRank={minRank}
                   challengerTitle={h.challenged_by ? byId.get(h.challenged_by)?.title : undefined}
                   isChallenging={stack.active.some((x) => x.challenged_by === h.id)}
+                  emailText={emailFor(h.title)}
                 />
               ))}
             </section>

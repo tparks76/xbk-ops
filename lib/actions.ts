@@ -56,7 +56,13 @@ export async function placeHolds(form: FormData) {
   redirect(`/day/${sorted[0]}?ok=${encodeURIComponent(`Hold placed on ${dates.length} date(s).`)}`);
 }
 
-export type CalendarHoldState = { error?: string; ok?: string; done?: number };
+export type CalendarHoldState = {
+  error?: string;
+  ok?: string;
+  done?: number;
+  title?: string;
+  placed?: { date: string; room_id: string; rank: number | null; status: string }[];
+};
 
 // Used by the "Hold these dates" window on the calendar: returns a message
 // instead of leaving the page, so the window can show errors in place.
@@ -72,7 +78,7 @@ export async function placeHoldsFromCalendar(
     return { error: "Pick at least one date on the calendar." };
   }
   const supabase = await createClient();
-  const { error } = await supabase.rpc("place_holds", {
+  const { data, error } = await supabase.rpc("place_holds", {
     p_room: str(form, "room"),
     p_dates: dates,
     p_title: str(form, "title"),
@@ -87,6 +93,10 @@ export async function placeHoldsFromCalendar(
   return {
     ok: `${str(form, "title")}: held on ${dates.length} date${dates.length > 1 ? "s" : ""}.`,
     done: (prev.done ?? 0) + 1,
+    title: str(form, "title"),
+    placed: ((data ?? []) as { date: string; room_id: string; rank: number | null; status: string }[]).map(
+      (h) => ({ date: h.date, room_id: h.room_id, rank: h.rank, status: h.status }),
+    ),
   };
 }
 

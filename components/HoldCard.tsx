@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CopyButton from "@/components/CopyButton";
 import Countdown from "@/components/Countdown";
 import {
   cancelChallenge,
@@ -18,6 +19,7 @@ type Props = {
   minRank: number;
   challengerTitle?: string; // title of the hold challenging this one
   isChallenging: boolean; // this hold has an open challenge on others
+  emailText?: string; // this artist's upcoming holds, for pasting into an email
 };
 
 function Hidden({ hold, returnTo }: { hold: Hold; returnTo: string }) {
@@ -37,6 +39,7 @@ export default function HoldCard({
   minRank,
   challengerTitle,
   isChallenging,
+  emailText,
 }: Props) {
   const rank = hold.rank ?? 0;
   const confirmed = hold.status === "confirmed";
@@ -82,8 +85,15 @@ export default function HoldCard({
 
       <div className="muted small">Placed by {hold.placed_by}</div>
 
+      {emailText && !canBook && (
+        <div className="hold-actions">
+          <CopyButton text={emailText} />
+        </div>
+      )}
+
       {canBook && (
         <div className="hold-actions">
+          {emailText && <CopyButton text={emailText} />}
           {!confirmed && (
             <>
               {rank !== 1 && (
