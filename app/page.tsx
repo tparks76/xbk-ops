@@ -87,20 +87,16 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
             All rooms
           </Link>
           {allRooms.map((r) => (
-            <Link key={r.id} className={roomFilter === r.id ? "on" : ""} href={link({ room: r.id })}>
+            <Link
+              key={r.id}
+              className={roomFilter === r.id ? "room-btn on" : "room-btn"}
+              style={{ ["--room" as string]: ROOM_COLOR[r.id] }}
+              href={link({ room: r.id })}
+            >
               {r.name}
             </Link>
           ))}
         </div>
-      </div>
-
-      <div className="legend" style={{ marginBottom: 10 }}>
-        {allRooms.map((r) => (
-          <span key={r.id} style={{ ["--c" as string]: ROOM_COLOR[r.id] }}>
-            {r.name}
-          </span>
-        ))}
-        <span className="legend-note">Outlined = hold · Filled = confirmed · Bold = H1 · ⏱ = challenge running</span>
       </div>
 
       {view === "month" ? (
