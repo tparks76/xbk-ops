@@ -2,6 +2,7 @@ import Link from "next/link";
 import Flash from "@/components/Flash";
 import ChallengesPanel from "@/components/ChallengesPanel";
 import MonthGrid from "@/components/MonthGrid";
+import MonthPicker from "@/components/MonthPicker";
 import StackChip from "@/components/StackChip";
 import { getHolds, getRooms, stackFor } from "@/lib/data";
 import { ROOM_COLOR } from "@/lib/stack";
@@ -12,7 +13,6 @@ import {
   isValidMonth,
   monthGrid,
   monthKey,
-  monthLabel,
   parseISO,
   todayISO,
 } from "@/lib/dates";
@@ -66,7 +66,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
         <Link className="button-link" href={link({ m: addMonths(m, -1) })}>
           ←
         </Link>
-        <h1>{monthLabel(m)}</h1>
+        <MonthPicker m={m} view={view} room={roomFilter} thisYear={Number(today.slice(0, 4))} />
         <Link className="button-link" href={link({ m: addMonths(m, 1) })}>
           →
         </Link>
