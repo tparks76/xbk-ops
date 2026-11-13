@@ -3,6 +3,13 @@ import type { Hold } from "@/lib/types";
 
 export const ROOM_SHORT: Record<string, string> = { xbk: "xBk", annex: "Annex", idc: "IDC" };
 
+// Calendar colors: holds are outlined in the room color, confirmed dates are filled.
+export const ROOM_COLOR: Record<string, string> = {
+  xbk: "#c62828", // red
+  annex: "#2e7d32", // green
+  idc: "#1565c0", // blue
+};
+
 export type Stack = {
   confirmed: Hold | null;
   active: Hold[]; // in rank order

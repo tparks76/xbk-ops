@@ -4,6 +4,7 @@ import ChallengesPanel from "@/components/ChallengesPanel";
 import Flash from "@/components/Flash";
 import HoldCard from "@/components/HoldCard";
 import { getRooms, stackFor } from "@/lib/data";
+import { ROOM_COLOR } from "@/lib/stack";
 import { addDays, fmtDate, isValidISO, monthKey } from "@/lib/dates";
 import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -55,7 +56,7 @@ export default async function DayPage({ params, searchParams }: Props) {
           const minRank = ranks.length ? Math.min(...ranks) : 0;
           const hasH1 = ranks.includes(1);
           return (
-            <section key={room.id} className="col">
+            <section key={room.id} className="col" style={{ ["--room" as string]: ROOM_COLOR[room.id] }}>
               <div className="col-head">
                 <h2>{room.name}</h2>
                 {staff.canBook && !stack.confirmed && (

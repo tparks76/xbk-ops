@@ -4,6 +4,7 @@ import ChallengesPanel from "@/components/ChallengesPanel";
 import MonthGrid from "@/components/MonthGrid";
 import StackChip from "@/components/StackChip";
 import { getHolds, getRooms, stackFor } from "@/lib/data";
+import { ROOM_COLOR } from "@/lib/stack";
 import {
   addMonths,
   daysInMonth,
@@ -94,12 +95,12 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
       </div>
 
       <div className="legend" style={{ marginBottom: 10 }}>
-        <span style={{ ["--c" as string]: "#dedfe8" }}>H1</span>
-        <span style={{ ["--c" as string]: "#eeeee9" }}>Hold</span>
-        <span style={{ ["--c" as string]: "var(--offer-bg)" }}>Offer out</span>
-        <span style={{ ["--c" as string]: "var(--challenge-bg)" }}>Challenge running</span>
-        <span style={{ ["--c" as string]: "var(--confirmed-bg)" }}>Confirmed</span>
-        <span style={{ ["--c" as string]: "var(--rental)" }}>Rental (left stripe)</span>
+        {allRooms.map((r) => (
+          <span key={r.id} style={{ ["--c" as string]: ROOM_COLOR[r.id] }}>
+            {r.name}
+          </span>
+        ))}
+        <span className="legend-note">Outlined = hold · Filled = confirmed · Bold = H1 · ⏱ = challenge running</span>
       </div>
 
       {view === "month" ? (
