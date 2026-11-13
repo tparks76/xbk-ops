@@ -15,6 +15,7 @@ function back(form: FormData, params: Record<string, string> = {}): never {
   url.searchParams.delete("error");
   url.searchParams.delete("released");
   url.searchParams.delete("ok");
+  url.searchParams.delete("confirmed");
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   redirect(url.pathname + url.search);
 }
@@ -136,6 +137,22 @@ export async function releaseArtist(form: FormData) {
   back(form, { ok: `Released ${n} hold${n === 1 ? "" : "s"} for ${title}.` });
 }
 
+// From the after-confirm pop-up: release the checked holds, or all of them.
+export async function releaseHolds(form: FormData) {
+  const all = str(form, "all") === "1";
+  const ids = (all ? form.getAll("all_ids") : form.getAll("pick")).map(String).filter(Boolean);
+  if (ids.length === 0) {
+    back(form, { error: "Tick at least one hold to release, or choose Keep all." });
+  }
+  const reason = str(form, "reason");
+  for (const id of ids) {
+    await rpc(form, "release_hold", { p_id: id, p_reason: reason });
+  }
+  let to = str(form, "doneTo") || "/";
+  if (!to.startsWith("/") || to.startsWith("//")) to = "/";
+  redirect(`${to}?ok=${encodeURIComponent(`Confirmed, and released ${ids.length} other hold${ids.length === 1 ? "" : "s"}.`)}`);
+}
+
 export async function confirmHold(form: FormData) {
   const released = (await rpc(form, "confirm_hold", { p_id: str(form, "id") })) as
     | { title: string; agent_name: string | null; agent_email: string | null }[]
@@ -143,7 +160,9 @@ export async function confirmHold(form: FormData) {
   const names = (released ?? [])
     .map((h) => h.title + (h.agent_name ? ` (${h.agent_name})` : ""))
     .join("; ");
-  back(form, names ? { ok: "Confirmed.", released: names } : { ok: "Confirmed." });
+  const base: Record<string, string> = names ? { ok: "Confirmed.", released: names } : { ok: "Confirmed." };
+  // "confirmed" opens the pop-up for releasing the artist's other holds.
+  back(form, { ...base, confirmed: str(form, "id") });
 }
 
 export async function updateHold(form: FormData) {

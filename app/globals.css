@@ -185,3 +185,7 @@ a.chip:hover { text-decoration: none; filter: brightness(0.94); }
 .release-all summary { cursor: pointer; color: var(--challenge); }
 .release-all form { margin: 6px 0 4px; }
 .release-all input[name="reason"] { width: 160px; font-size: 12px; }
+.pick-list { display: grid; gap: 4px; max-height: 50vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
+.pick { display: flex !important; align-items: center; gap: 10px; font-weight: 400 !important; font-size: 14px !important; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.pick:hover { background: #f6f6f4; }
+.pick-room { font-weight: 700; width: 48px; }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChallengesPanel from "@/components/ChallengesPanel";
+import ConfirmReleaseModal from "@/components/ConfirmReleaseModal";
 import Flash from "@/components/Flash";
 import HoldCard from "@/components/HoldCard";
 import { getRooms, stackFor } from "@/lib/data";
@@ -12,7 +13,7 @@ import type { Hold } from "@/lib/types";
 
 type Props = {
   params: Promise<{ date: string }>;
-  searchParams: Promise<{ error?: string; ok?: string; released?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; released?: string; confirmed?: string }>;
 };
 
 export default async function DayPage({ params, searchParams }: Props) {
@@ -47,6 +48,20 @@ export default async function DayPage({ params, searchParams }: Props) {
     ((artistRows ?? []) as (EmailHold & { title: string })[]).filter(
       (r) => r.title === title && r.date >= today && (r.status === "hold" || r.status === "offer_out"),
     ).length;
+  // After "Confirm": the artist's other upcoming holds, for the release pop-up.
+  const justConfirmed = sp.confirmed ? byId.get(sp.confirmed) : undefined;
+  let others: Hold[] = [];
+  if (justConfirmed?.status === "confirmed") {
+    const { data: o } = await supabase
+      .from("holds")
+      .select("*")
+      .ilike("title", justConfirmed.title.replace(/[%_\\]/g, "\\$&"))
+      .in("status", ["hold", "offer_out"])
+      .gte("date", today)
+      .order("date");
+    others = (o ?? []) as Hold[];
+  }
+
   const emailFor = (title: string) =>
     holdsEmailText(
       title,
@@ -67,7 +82,14 @@ export default async function DayPage({ params, searchParams }: Props) {
         <Link href={`/?m=${monthKey(date)}`}>Back to calendar</Link>
       </div>
 
-      <Flash error={sp.error} ok={sp.ok} released={sp.released} />
+      {justConfirmed && others.length > 0 ? (
+        <>
+          <Flash error={sp.error} />
+          <ConfirmReleaseModal confirmed={justConfirmed} others={others} releasedHere={sp.released} date={date} />
+        </>
+      ) : (
+        <Flash error={sp.error} ok={sp.ok} released={sp.released} />
+      )}
 
       <div className="columns">
         {rooms.map((room) => {
