@@ -109,6 +109,16 @@ await as('mod@xbk.com');
 ok((await err(() => q(`select * from release_artist('Other')`))) !== null, 'MOD cannot release artist');
 await as('tobi@xbk.com');
 
+// offers: mark sent flips the offer's holds to offer_out
+await as('bill@xbk.com');
+const O1 = (await q(`select * from place_holds('annex', array['2027-07-01','2027-07-02']::date[], 'Oscar')`));
+const off = (await q(`insert into offers (hold_ids, room_id, title, created_by) values ($1, 'annex', 'Oscar', 'bill@xbk.com') returning *`, [O1.map(h => h.id)]))[0];
+await q(`select * from mark_offer_sent($1)`, [off.id]);
+const st = await q(`select status from holds where id = any($1)`, [O1.map(h => h.id)]);
+ok(st.every(r => r.status === 'offer_out'), 'mark_offer_sent sets offer_out');
+ok((await q(`select status from offers where id=$1`, [off.id]))[0].status === 'sent', 'offer marked sent');
+await as('tobi@xbk.com');
+
 const ev = await q(`select count(*)::int n from hold_events`);
 ok(ev[0].n > 15, 'activity logged: ' + ev[0].n);
 console.log(`${pass} passed, ${fail} failed`);

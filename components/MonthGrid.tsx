@@ -27,6 +27,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
   const [open, setOpen] = useState(false);
   const [room, setRoom] = useState(rooms.length === 1 ? rooms[0].id : allRooms[0]?.id ?? "xbk");
   const [flash, setFlash] = useState<{ text: string; email: string } | null>(null);
+  const [offerAsk, setOfferAsk] = useState<{ text: string; email: string; ids: string[] } | null>(null);
   const [state, formAction, pending] = useActionState<CalendarHoldState, FormData>(
     placeHoldsFromCalendar,
     {},
@@ -37,7 +38,12 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
     if (state.done) {
       setOpen(false);
       setSelected([]);
-      setFlash({ text: state.ok ?? "", email: holdsEmailText(state.title ?? "", state.placed ?? []) });
+      // Holds are saved; now ask whether to build an offer for exactly these dates.
+      setOfferAsk({
+        text: state.ok ?? "",
+        email: holdsEmailText(state.title ?? "", state.placed ?? []),
+        ids: (state.placed ?? []).map((h) => h.id),
+      });
       router.refresh();
     }
   }, [state.done, state.ok, state.title, state.placed, router]);
@@ -107,6 +113,31 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
           <button className="primary" onClick={() => setOpen(true)}>
             Hold these dates
           </button>
+        </div>
+      )}
+
+      {offerAsk && (
+        <div className="modal-backdrop">
+          <div className="modal" role="dialog" aria-modal="true">
+            <h2>Holds placed ✓</h2>
+            <div>{offerAsk.text}</div>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>Would you like to build an offer for these dates?</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button className="primary" onClick={() => router.push(`/offers/new?holds=${offerAsk.ids.join(",")}`)}>
+                Yes, build offer
+              </button>
+              <button
+                onClick={() => {
+                  setFlash({ text: offerAsk.text, email: offerAsk.email });
+                  setOfferAsk(null);
+                }}
+              >
+                No, back to calendar
+              </button>
+              <span className="spacer" />
+              <CopyButton text={offerAsk.email} label="Copy holds for email" />
+            </div>
+          </div>
         </div>
       )}
 

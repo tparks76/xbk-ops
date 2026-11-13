@@ -51,3 +51,19 @@ export const ROLE_LABELS: Record<string, string> = {
   production: "Production",
   mod: "MOD",
 };
+
+export type Offer = {
+  id: string;
+  hold_ids: string[];
+  room_id: string;
+  title: string;
+  agent_name: string | null;
+  agent_company: string | null;
+  agent_email: string | null;
+  terms: unknown;
+  status: "draft" | "sent" | "accepted" | "declined";
+  created_by: string;
+  sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+};

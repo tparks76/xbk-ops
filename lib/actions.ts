@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isValidISO } from "@/lib/dates";
+import { normalizeTerms } from "@/lib/offer";
+import { getStaff } from "@/lib/session";
 
 // Every action posts back to the page it came from ("returnTo"),
 // with ?error=... if the database refused the change.
@@ -63,7 +65,7 @@ export type CalendarHoldState = {
   ok?: string;
   done?: number;
   title?: string;
-  placed?: { date: string; room_id: string; rank: number | null; status: string }[];
+  placed?: { id: string; date: string; room_id: string; rank: number | null; status: string }[];
 };
 
 // Used by the "Hold these dates" window on the calendar: returns a message
@@ -96,8 +98,8 @@ export async function placeHoldsFromCalendar(
     ok: `${str(form, "title")}: held on ${dates.length} date${dates.length > 1 ? "s" : ""}.`,
     done: (prev.done ?? 0) + 1,
     title: str(form, "title"),
-    placed: ((data ?? []) as { date: string; room_id: string; rank: number | null; status: string }[]).map(
-      (h) => ({ date: h.date, room_id: h.room_id, rank: h.rank, status: h.status }),
+    placed: ((data ?? []) as { id: string; date: string; room_id: string; rank: number | null; status: string }[]).map(
+      (h) => ({ id: h.id, date: h.date, room_id: h.room_id, rank: h.rank, status: h.status }),
     ),
   };
 }
@@ -185,4 +187,53 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+// ---------------------------------------------------------------------------
+// Offers
+// ---------------------------------------------------------------------------
+
+export async function saveOffer(form: FormData) {
+  const staff = await getStaff();
+  if (!staff?.canBook) back(form, { error: "Only a booker or owner can save offers." });
+  const supabase = await createClient();
+  const id = str(form, "id");
+  let terms;
+  try {
+    terms = normalizeTerms(JSON.parse(str(form, "terms") || "{}"));
+  } catch {
+    back(form, { error: "Couldn't read the offer terms. Try again." });
+  }
+  const fields = {
+    title: str(form, "title"),
+    agent_name: str(form, "agent_name") || null,
+    agent_company: str(form, "agent_company") || null,
+    agent_email: str(form, "agent_email").toLowerCase() || null,
+    terms,
+    updated_at: new Date().toISOString(),
+  };
+  if (!fields.title) back(form, { error: "Artist name is required." });
+
+  if (id) {
+    const { error } = await supabase.from("offers").update(fields).eq("id", id);
+    if (error) back(form, { error: cleanError(error.message) });
+    revalidatePath("/", "layout");
+    redirect(`/offers/${id}?ok=${encodeURIComponent("Offer saved.")}`);
+  }
+
+  const holdIds = str(form, "hold_ids").split(",").filter(Boolean);
+  if (holdIds.length === 0) back(form, { error: "This offer isn't linked to any holds." });
+  const { data, error } = await supabase
+    .from("offers")
+    .insert({ ...fields, hold_ids: holdIds, room_id: str(form, "room_id"), created_by: staff!.email })
+    .select("id")
+    .single();
+  if (error) back(form, { error: cleanError(error.message) });
+  revalidatePath("/", "layout");
+  redirect(`/offers/${data!.id}?ok=${encodeURIComponent("Offer saved.")}`);
+}
+
+export async function markOfferSent(form: FormData) {
+  await rpc(form, "mark_offer_sent", { p_offer: str(form, "id") });
+  back(form, { ok: "Marked as sent. These holds now show Offer out." });
 }

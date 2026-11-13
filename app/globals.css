@@ -195,3 +195,60 @@ a.chip:hover { text-decoration: none; filter: brightness(0.94); }
 .tag-past { font-size: 11px; color: var(--muted); background: #eeeee9; border-radius: 3px; padding: 0 5px; }
 .month-picker { display: inline-flex; gap: 6px; }
 .month-picker select { font-size: 18px; font-weight: 700; padding: 4px 8px; }
+
+/* Offer tool */
+.offer-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .offer-layout { grid-template-columns: 1fr; } }
+.offer-main { border: none; padding: 0; margin: 0; min-width: 0; }
+.offer-main .panel { margin-bottom: 14px; }
+.offer-budget { position: sticky; top: 12px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+.form-grid label, label.inline { display: grid; gap: 4px; font-size: 13px; font-weight: 600; }
+.form-grid .span2 { grid-column: span 2; }
+label.inline { display: inline-grid; }
+.deal-types { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.deal { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; cursor: pointer; }
+.deal.on { border-color: var(--text); background: #f0f0ec; font-weight: 600; }
+.deal-preview { margin-top: 12px; padding: 10px 12px; background: #f6f6f4; border-radius: 8px; font-size: 14px; }
+table.rows { border-collapse: collapse; width: 100%; margin-bottom: 8px; }
+table.rows th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 2px 4px; }
+table.rows td { padding: 2px 4px; }
+table.rows input { width: 100%; }
+.row-tools { display: flex; align-items: end; gap: 16px; flex-wrap: wrap; }
+.row-tools input { width: 90px; }
+.offer-dates { margin: 0; padding-left: 18px; font-size: 14px; }
+.offer-dates li.released { color: var(--muted); text-decoration: line-through; }
+.offer-save { position: sticky; bottom: 12px; background: var(--bg); padding: 8px 0; }
+table.budget td.neg { color: var(--challenge); font-weight: 600; }
+table.budget td.pos { color: var(--confirmed); font-weight: 600; }
+.be { margin: 10px 0 6px; font-weight: 600; }
+.badge.status-draft { background: #eeeee9; }
+.badge.status-sent { background: var(--offer-bg); color: var(--offer); }
+.badge.status-accepted { background: var(--confirmed-bg); color: var(--confirmed); }
+.badge.status-declined { background: var(--challenge-bg); color: var(--challenge); }
+.day-head .spacer { flex: 1; }
+
+/* Offer sheet (print) */
+.sheet-tools { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.sheet { background: #fff; max-width: 780px; margin: 0 auto; padding: 40px 48px; border: 1px solid var(--line); border-radius: 8px; color: #111; }
+.sheet-head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #111; padding-bottom: 12px; margin-bottom: 18px; }
+.sheet-venue { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; }
+.sheet-title { text-align: right; font-size: 22px; font-weight: 800; letter-spacing: 2px; }
+.sheet h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 6px; color: #444; }
+.sheet-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.sheet-table th { text-align: left; width: 150px; color: #555; font-weight: 600; padding: 6px 8px 6px 0; vertical-align: top; }
+.sheet-table td { padding: 6px 0; vertical-align: top; }
+.sheet-table.grid th, .sheet-table.grid td { border-bottom: 1px solid #ddd; padding: 6px 8px; width: auto; }
+.sheet-table tr.total td { font-weight: 700; border-top: 2px solid #111; }
+.sheet-notes { white-space: pre-wrap; font-size: 14px; }
+.sheet-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 48px; font-size: 12px; color: #555; }
+.sheet-sign .line { border-bottom: 1px solid #111; height: 36px; margin-bottom: 4px; }
+@media print {
+  .topbar, .no-print { display: none !important; }
+  body, :root { background: #fff; }
+  main { padding: 0; max-width: none; }
+  .sheet { border: none; padding: 0; max-width: none; }
+  @page { margin: 0.6in; }
+}
+.spacer { flex: 1; }
+.form-grid input, .form-grid select, .form-grid textarea { width: 100%; }

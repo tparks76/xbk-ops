@@ -21,6 +21,7 @@ type Props = {
   isChallenging: boolean; // this hold has an open challenge on others
   emailText?: string; // this artist's upcoming holds, for pasting into an email
   artistHoldCount?: number; // this artist's upcoming active holds, all rooms
+  offerId?: string; // offer that covers this hold, if any
 };
 
 function Hidden({ hold, returnTo }: { hold: Hold; returnTo: string }) {
@@ -42,6 +43,7 @@ export default function HoldCard({
   isChallenging,
   emailText,
   artistHoldCount = 0,
+  offerId,
 }: Props) {
   const rank = hold.rank ?? 0;
   const confirmed = hold.status === "confirmed";
@@ -96,6 +98,17 @@ export default function HoldCard({
 
       {canBook && (
         <div className="hold-actions">
+          {offerId ? (
+            <Link className="button-link" href={`/offers/${offerId}`}>
+              View offer
+            </Link>
+          ) : (
+            !confirmed && (
+              <Link className="button-link" href={`/offers/new?holds=${hold.id}`}>
+                Build offer
+              </Link>
+            )
+          )}
           {emailText && <CopyButton text={emailText} />}
           {!confirmed && (
             <>
