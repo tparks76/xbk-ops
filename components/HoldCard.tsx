@@ -150,9 +150,9 @@ export default function HoldCard({
             <input name="reason" placeholder="Reason (optional)" aria-label="Reason" />
             <button className="danger">{confirmed ? "Cancel date" : "Release"}</button>
           </form>
-          {!confirmed && artistHoldCount > 1 && (
+          {!confirmed && (
             <Link className="button-link danger-link" href={`/day/${hold.date}?release=${hold.id}`}>
-              Release holds… ({artistHoldCount})
+              Release holds…{artistHoldCount > 1 ? ` (${artistHoldCount})` : ""}
             </Link>
           )}
           <Link className="button-link" href={`/hold/${hold.id}/edit`}>

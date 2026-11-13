@@ -33,21 +33,22 @@ export default async function DayPage({ params, searchParams }: Props) {
 
   const byId = new Map(holds.map((h) => [h.id, h]));
 
-  // Each artist's upcoming holds in every room, for "Copy for email".
-  const titles = [...new Set(holds.filter((h) => h.status !== "released").map((h) => h.title))];
-  const { data: artistRows } = titles.length
+  // Each artist's holds in every room (from this date or today, whichever is
+  // earlier), matched on name ignoring capitals and extra spaces.
+  // Used for "Copy for email" and the "Release holds…" count.
+  const today = todayISO();
+  const norm = (t: string) => t.trim().replace(/\s+/g, " ").toLowerCase();
+  const { data: artistRows } = holds.some((h) => h.status !== "released")
     ? await supabase
         .from("holds")
         .select("title,date,room_id,rank,status")
-        .in("title", titles)
-        .gte("date", date < todayISO() ? date : todayISO())
+        .gte("date", date < today ? date : today)
         .in("status", ["hold", "offer_out", "confirmed"])
     : { data: [] };
-  const today = todayISO();
+  const rowsFor = (title: string) =>
+    ((artistRows ?? []) as (EmailHold & { title: string })[]).filter((r) => norm(r.title) === norm(title));
   const activeCount = (title: string) =>
-    ((artistRows ?? []) as (EmailHold & { title: string })[]).filter(
-      (r) => r.title === title && r.date >= today && (r.status === "hold" || r.status === "offer_out"),
-    ).length;
+    rowsFor(title).filter((r) => r.date >= today && (r.status === "hold" || r.status === "offer_out")).length;
   // After "Confirm": the artist's other upcoming holds, for the release pop-up.
   const justConfirmed = sp.confirmed ? byId.get(sp.confirmed) : undefined;
   const releaseFrom = sp.release ? byId.get(sp.release) : undefined;
@@ -57,18 +58,17 @@ export default async function DayPage({ params, searchParams }: Props) {
     const { data: o } = await supabase
       .from("holds")
       .select("*")
-      .ilike("title", pivot.title.replace(/[%_\\]/g, "\\$&"))
+      .ilike("title", pivot.title.trim().replace(/[%_\\]/g, "\\$&"))
       .in("status", ["hold", "offer_out"])
       .gte("date", today)
       .order("date");
     others = (o ?? []) as Hold[];
+    if (pivot === releaseFrom && releaseFrom && !others.some((h) => h.id === releaseFrom.id)) {
+      others = [releaseFrom, ...others]; // past-dated hold opened from its own day
+    }
   }
 
-  const emailFor = (title: string) =>
-    holdsEmailText(
-      title,
-      ((artistRows ?? []) as (EmailHold & { title: string })[]).filter((r) => r.title === title),
-    );
+  const emailFor = (title: string) => holdsEmailText(title, rowsFor(title));
   const returnTo = `/day/${date}`;
 
   return (
