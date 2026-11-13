@@ -145,14 +145,16 @@ export default function HoldCard({
               </form>
             </>
           )}
-          <form action={releaseHold} className="inline-form">
-            <Hidden hold={hold} returnTo={returnTo} />
-            <input name="reason" placeholder="Reason (optional)" aria-label="Reason" />
-            <button className="danger">{confirmed ? "Cancel date" : "Release"}</button>
-          </form>
+          {confirmed && (
+            <form action={releaseHold} className="inline-form">
+              <Hidden hold={hold} returnTo={returnTo} />
+              <input name="reason" placeholder="Reason (optional)" aria-label="Reason" />
+              <button className="danger">Cancel date</button>
+            </form>
+          )}
           {!confirmed && (
             <Link className="button-link danger-link" href={`/day/${hold.date}?release=${hold.id}`}>
-              Release holds…{artistHoldCount > 1 ? ` (${artistHoldCount})` : ""}
+              Release…{artistHoldCount > 1 ? ` (${artistHoldCount} holds)` : ""}
             </Link>
           )}
           <Link className="button-link" href={`/hold/${hold.id}/edit`}>

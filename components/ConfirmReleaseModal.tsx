@@ -51,8 +51,9 @@ export default function ConfirmReleaseModal({
             </>
           ) : (
             <>
-              {confirmed.title} has <strong>{others.length}</strong> hold{others.length === 1 ? "" : "s"} across all rooms.
-              Select the ones to release. Confirmed dates aren’t listed.
+              {confirmed.title} has <strong>{others.length}</strong> hold{others.length === 1 ? "" : "s"}
+              {others.length > 1 ? " across all rooms" : ""}.
+              The date you clicked from is ticked. Tick more to release them too. Confirmed dates aren’t listed.
             </>
           )}
         </div>
@@ -90,9 +91,11 @@ export default function ConfirmReleaseModal({
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="danger">Release selected</button>
-            <button className="danger" name="all" value="1">
-              Release all {others.length}
-            </button>
+            {others.length > 1 && (
+              <button className="danger" name="all" value="1">
+                Release all {others.length}
+              </button>
+            )}
             <Link className="button-link" href={closeHref}>
               {isConfirm ? "Keep all" : "Cancel"}
             </Link>
