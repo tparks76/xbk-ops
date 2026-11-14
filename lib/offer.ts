@@ -365,7 +365,7 @@ export function offerEmailText(h: OfferHeader, t: Terms): string {
   lines.push(`Deal: ${dealText(t)}`);
   lines.push(`Setup: ${setupLabel(t)}`);
 
-  const tiers = t.tiers.filter((x) => x.qty > 0);
+  const tiers = t.tiers.filter((x, i) => i < 2 || x.qty > 0 || x.price > 0); // Advance and Day of show always shown
   if (tiers.length) {
     lines.push(`Tickets: ${tiers.map((x) => `${x.name || "Tickets"} ${money(x.price)} (${x.qty})`).join(" · ")}`);
     const so = budgetAt(t, capacity(t));
