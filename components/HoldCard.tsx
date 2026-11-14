@@ -103,7 +103,12 @@ export default function HoldCard({
 
       {canBook && (
         <div className="hold-actions">
-          {!offerId && !confirmed && (
+          {!offerId && !confirmed && hold.kind === "rental" && (
+            <Link className="button-link" href={`/rentals/new?holds=${hold.id}`}>
+              Rental form
+            </Link>
+          )}
+          {!offerId && !confirmed && hold.kind !== "rental" && (
             <Link className="button-link" href={`/offers/new?holds=${hold.id}`}>
               Build offer
             </Link>

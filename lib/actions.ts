@@ -65,6 +65,7 @@ export type CalendarHoldState = {
   ok?: string;
   done?: number;
   title?: string;
+  kind?: "show" | "rental";
   placed?: { id: string; date: string; room_id: string; rank: number | null; status: string }[];
 };
 
@@ -98,6 +99,7 @@ export async function placeHoldsFromCalendar(
     ok: `${str(form, "title")}: held on ${dates.length} date${dates.length > 1 ? "s" : ""}.`,
     done: (prev.done ?? 0) + 1,
     title: str(form, "title"),
+    kind: str(form, "kind") === "rental" ? "rental" : "show",
     placed: ((data ?? []) as { id: string; date: string; room_id: string; rank: number | null; status: string }[]).map(
       (h) => ({ id: h.id, date: h.date, room_id: h.room_id, rank: h.rank, status: h.status }),
     ),

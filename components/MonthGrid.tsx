@@ -27,7 +27,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
   const [open, setOpen] = useState(false);
   const [room, setRoom] = useState(rooms.length === 1 ? rooms[0].id : allRooms[0]?.id ?? "xbk");
   const [flash, setFlash] = useState<{ text: string; email: string } | null>(null);
-  const [offerAsk, setOfferAsk] = useState<{ text: string; email: string; ids: string[] } | null>(null);
+  const [offerAsk, setOfferAsk] = useState<{ text: string; email: string; ids: string[]; rental: boolean } | null>(null);
   const [state, formAction, pending] = useActionState<CalendarHoldState, FormData>(
     placeHoldsFromCalendar,
     {},
@@ -43,10 +43,11 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
         text: state.ok ?? "",
         email: holdsEmailText(state.title ?? "", state.placed ?? []),
         ids: (state.placed ?? []).map((h) => h.id),
+        rental: state.kind === "rental",
       });
       router.refresh();
     }
-  }, [state.done, state.ok, state.title, state.placed, router]);
+  }, [state.done, state.ok, state.title, state.kind, state.placed, router]);
 
   const sorted = useMemo(() => [...selected].sort(), [selected]);
 
@@ -128,10 +129,19 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
           <div className="modal" role="dialog" aria-modal="true">
             <h2>Holds placed ✓</h2>
             <div>{offerAsk.text}</div>
-            <div style={{ fontSize: 16, fontWeight: 600 }}>Would you like to build an offer for these dates?</div>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>
+              {offerAsk.rental
+                ? "Would you like to fill out the rental form for these dates?"
+                : "Would you like to build an offer for these dates?"}
+            </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button className="primary" onClick={() => router.push(`/offers/new?holds=${offerAsk.ids.join(",")}`)}>
-                Yes, build offer
+              <button
+                className="primary"
+                onClick={() =>
+                  router.push(`${offerAsk.rental ? "/rentals/new" : "/offers/new"}?holds=${offerAsk.ids.join(",")}`)
+                }
+              >
+                {offerAsk.rental ? "Yes, open rental form" : "Yes, build offer"}
               </button>
               <button
                 onClick={() => {
