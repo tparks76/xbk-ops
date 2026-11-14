@@ -216,6 +216,121 @@ export function findIcsLink(html: string, base: string): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Pages with one link per show (First Fleet / Iowa Events Center, WordPress
+// event pages, Turntable Tickets...). We open each show's page.
+// ---------------------------------------------------------------------------
+
+const DETAIL = /\/(events?|shows?|concerts?)\/(detail\/)?[^/?#]+/i;
+const NOT_DETAIL = /\/(events?|shows?)\/?(all|list|calendar|archive|month|category|tag|page|feed|upcoming|past)?\/?$|event-archive|\/category\/|\/tag\/|\/page\/|private-events/i;
+
+export function findEventLinks(html: string, base: string): string[] {
+  const host = new URL(base).host;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const m of html.matchAll(/href=["']([^"'#]+)["']/gi)) {
+    let u: URL;
+    try {
+      u = new URL(m[1].replace(/&amp;/g, "&"), base);
+    } catch {
+      continue;
+    }
+    if (u.host !== host || !DETAIL.test(u.pathname) || NOT_DETAIL.test(u.pathname)) continue;
+    u.search = "";
+    const k = u.toString().replace(/\/$/, "");
+    if (k === base.replace(/\/$/, "") || seen.has(k)) continue;
+    seen.add(k);
+    out.push(u.toString());
+  }
+  return out;
+}
+
+function metaContent(html: string, key: string): string | undefined {
+  const re = new RegExp(`<meta[^>]+(?:property|name|itemprop)=["']${key}["'][^>]*>`, "i");
+  const tag = html.match(re)?.[0];
+  return tag?.match(/content=["']([^"']*)["']/i)?.[1];
+}
+
+// One show's own page: event data if present, else a date in the link or the page.
+export function parseDetailPage(html: string, pageUrl: string): VenueEvent[] {
+  const ld = parseJsonLd(html);
+  if (ld.length) {
+    const here = ld.filter((e) => e.url && e.url.replace(/\/$/, "") === pageUrl.replace(/\/$/, ""));
+    return (here.length ? here : ld.slice(0, 1)).map((e) => ({ ...e, url: e.url ?? pageUrl }));
+  }
+  const fromUrl = pageUrl.match(/\/(\d{4}-\d{2}-\d{2})(?:[/?#]|$)/)?.[1];
+  const timeAttr = html.match(/<time[^>]+datetime=["']([^"']+)["']/i)?.[1];
+  const metaStart = metaContent(html, "startDate") ?? metaContent(html, "event:start_time");
+  let when = fromUrl ? { date: fromUrl } : parseWhen(metaStart ?? timeAttr);
+  if (!when) {
+    // Last resort: the first full written date on the page, e.g. "Wed, Nov 18, 2026".
+    const text = decodeEntities(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " "));
+    const m = text.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(20\d{2})\b/i);
+    if (m) {
+      const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+      const mo = months.indexOf(m[1].slice(0, 3).toLowerCase()) + 1;
+      when = { date: `${m[3]}-${String(mo).padStart(2, "0")}-${m[2].padStart(2, "0")}` };
+    }
+  }
+  if (!when) return [];
+  const rawTitle =
+    metaContent(html, "og:title") ?? html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? "";
+  const title = decodeEntities(rawTitle).split(/\s+[|–—]\s+/)[0].trim();
+  if (!title) return [];
+  const time = (when as { time?: string }).time;
+  return [{ uid: pageUrl, title, date: when.date, time, url: pageUrl }];
+}
+
+// ---------------------------------------------------------------------------
+// Plain-text lists, e.g. "Saturday, 8/1 – Band A / Band B | 7:00pm"
+// ---------------------------------------------------------------------------
+
+function inferYear(month: number, day: number, today = new Date()): string {
+  const t = localParts(today).date;
+  const y = Number(t.slice(0, 4));
+  for (const yr of [y, y + 1, y - 1]) {
+    const d = `${yr}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const diff = (Date.parse(d) - Date.parse(t)) / 86_400_000;
+    if (diff >= -45 && diff <= 320) return d;
+  }
+  return `${y}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function to24(t?: string): string | undefined {
+  const m = t?.match(/(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m/i);
+  if (!m) return undefined;
+  let h = Number(m[1]) % 12;
+  if (/p/i.test(m[3])) h += 12;
+  return `${String(h).padStart(2, "0")}:${m[2] ?? "00"}`;
+}
+
+export function parseTextList(html: string, today = new Date()): VenueEvent[] {
+  const text = html
+    .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<(br|\/p|\/div|\/li|\/h\d|\/tr)[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, " ");
+  const out: VenueEvent[] = [];
+  const re =
+    /^\s*(?:(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?,?\s+)?(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?\s*[–—:-]\s*(.+?)\s*$/i;
+  for (const raw of text.split("\n")) {
+    const line = decodeEntities(raw);
+    const m = line.match(re);
+    if (!m) continue;
+    const month = Number(m[1]);
+    const day = Number(m[2]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+    let rest = m[3];
+    const timeMatch = rest.match(/[|@,]?\s*(\d{1,2}(?::\d{2})?\s*[ap]\.?m\.?)\s*$/i);
+    const time = to24(timeMatch?.[1]);
+    if (timeMatch) rest = rest.slice(0, timeMatch.index).replace(/[|@,\s]+$/, "");
+    const title = rest.trim();
+    if (title.length < 2) continue;
+    const date = inferYear(month, day, today);
+    out.push({ uid: `${date}|${title.toLowerCase()}`, title, date, time });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // Fetch + read
 // ---------------------------------------------------------------------------
 
@@ -227,7 +342,7 @@ async function get(url: string, accept = "text/html,application/xhtml+xml,text/c
     signal: AbortSignal.timeout(15000),
   });
   if (!res.ok) throw new Error(`${new URL(url).hostname} returned ${res.status}`);
-  return { text: await res.text(), type: res.headers.get("content-type") ?? "" };
+  return { text: await res.text(), type: res.headers.get("content-type") ?? "", url: res.url || url };
 }
 
 function upcoming(events: VenueEvent[]): VenueEvent[] {
@@ -239,9 +354,19 @@ function upcoming(events: VenueEvent[]): VenueEvent[] {
     .sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? "").localeCompare(b.time ?? ""));
 }
 
+async function inBatches<T, R>(items: T[], size: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = [];
+  for (let i = 0; i < items.length; i += size) {
+    out.push(...(await Promise.all(items.slice(i, i + size).map(fn))));
+  }
+  return out;
+}
+
+const MAX_DETAIL_PAGES = 60;
+
 export async function readVenue(rawUrl: string): Promise<ReadResult> {
-  const url = rawUrl.trim().replace(/^webcal:/i, "https:");
-  const page = await get(url);
+  const page = await get(rawUrl.trim().replace(/^webcal:/i, "https:"));
+  const url = page.url; // after any redirect
 
   if (/text\/calendar/i.test(page.type) || page.text.trimStart().startsWith("BEGIN:VCALENDAR")) {
     return { events: upcoming(parseICS(page.text)), method: "calendar feed" };
@@ -284,6 +409,24 @@ export async function readVenue(rawUrl: string): Promise<ReadResult> {
       /* fall through */
     }
   }
+
+  // One page per show: open each show's page (capped, a few at a time).
+  const links = findEventLinks(page.text, url).slice(0, MAX_DETAIL_PAGES);
+  if (links.length) {
+    const lists = await inBatches(links, 6, async (link) => {
+      try {
+        const r = await get(link);
+        return parseDetailPage(r.text, r.url);
+      } catch {
+        return [] as VenueEvent[];
+      }
+    });
+    const ev = upcoming(lists.flat());
+    if (ev.length) return { events: ev, method: `each show's page (${links.length} checked)` };
+  }
+
+  const fromText = upcoming(parseTextList(page.text));
+  if (fromText.length) return { events: fromText, method: "dates listed on page" };
 
   return { events: [], method: "nothing readable found" };
 }
