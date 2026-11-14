@@ -196,8 +196,27 @@ export default async function OfferSheetPage({ params }: { params: Promise<{ id:
 
         {t.notes.trim() && (
           <>
-            <h3>Other terms</h3>
-            <p className="sheet-notes">{t.notes}</p>
+            <h3>Additional provisions</h3>
+            <div className="sheet-notes">
+              {/* Paragraphs, with "* " lines shown as bullets */}
+              {t.notes
+                .trim()
+                .split(/\n\s*\n/)
+                .map((block, i) => {
+                  const lines = block.split("\n").filter((l) => l.trim());
+                  const bullets = lines.filter((l) => /^\s*[*•-]\s+/.test(l));
+                  if (bullets.length === lines.length) {
+                    return (
+                      <ul key={i}>
+                        {lines.map((l, j) => (
+                          <li key={j}>{l.replace(/^\s*[*•-]\s+/, "")}</li>
+                        ))}
+                      </ul>
+                    );
+                  }
+                  return <p key={i}>{block}</p>;
+                })}
+            </div>
           </>
         )}
 

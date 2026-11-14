@@ -2,6 +2,8 @@
 // Pure functions: used on the offer form (live budget), the printable sheet
 // and Copy for email, so all three always agree.
 
+import { STANDARD_PROVISIONS } from "@/lib/provisions";
+
 export type DealType = "flat" | "vs" | "door" | "bonus";
 
 export type Tier = { name: string; price: number; qty: number };
@@ -124,7 +126,7 @@ export function defaultTerms(room = "xbk"): Terms {
     hospitality: "",
     radius: "100 miles, 60 days before / 30 days after",
     expires: "",
-    notes: "",
+    notes: STANDARD_PROVISIONS,
     dateText: "",
   };
 }
@@ -397,6 +399,7 @@ export function offerEmailText(h: OfferHeader, t: Terms): string {
   if (t.expires) lines.push(`Offer expires: ${t.expires}`);
   if (t.notes.trim()) {
     lines.push("");
+    lines.push("ADDITIONAL PROVISIONS");
     lines.push(t.notes.trim());
   }
   lines.push("");

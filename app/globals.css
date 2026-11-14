@@ -277,3 +277,7 @@ h3.sub { font-size: 14px; margin: 18px 0 4px; }
 .offer-layout input[type="number"]::-webkit-outer-spin-button,
 .offer-layout input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .offer-layout input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.sheet-notes { font-size: 12px; line-height: 1.45; white-space: normal !important; }
+.sheet-notes p { margin: 0 0 8px; white-space: pre-wrap; }
+.sheet-notes ul { margin: 0 0 8px; padding-left: 18px; }
+.sheet-notes li { margin-bottom: 3px; }

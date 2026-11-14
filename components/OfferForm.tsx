@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { saveOffer } from "@/lib/actions";
+import { STANDARD_PROVISIONS } from "@/lib/provisions";
 import {
   AGES,
   DEAL_LABELS,
@@ -411,9 +412,19 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
               <input type="date" value={t.expires} onChange={(e) => set("expires", e.target.value)} />
             </label>
             <label className="span2">
-              Other terms / notes
-              <textarea rows={3} value={t.notes} onChange={(e) => set("notes", e.target.value)} />
+              Additional provisions
+              <textarea rows={14} value={t.notes} onChange={(e) => set("notes", e.target.value)} />
             </label>
+            {!t.notes.includes(STANDARD_PROVISIONS.slice(0, 60)) && (
+              <div className="span2">
+                <button
+                  type="button"
+                  onClick={() => set("notes", t.notes.trim() ? `${t.notes.trim()}\n\n${STANDARD_PROVISIONS}` : STANDARD_PROVISIONS)}
+                >
+                  Add standard provisions
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
