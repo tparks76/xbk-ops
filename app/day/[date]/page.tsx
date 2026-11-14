@@ -34,7 +34,7 @@ export default async function DayPage({ params, searchParams }: Props) {
 
   const byId = new Map(holds.map((h) => [h.id, h]));
   const { data: noteRows } = await supabase.from("date_notes").select("*").eq("date", date).order("created_at");
-  const notes = (noteRows ?? []) as DateNote[];
+  const notes = ((noteRows ?? []) as DateNote[]).filter((n) => !n.hidden);
 
   // Every active or confirmed hold, matched to artists by name (ignoring capitals
   // and extra spaces). One list feeds the Release holds count, its pop-up and

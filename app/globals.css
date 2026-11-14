@@ -303,3 +303,14 @@ table.rooms td.date.has-note { background: #fff3b0; }
 .date-note-add { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
 .date-note-add textarea { flex: 1; }
 button.link-danger { background: none; border: none; color: var(--challenge); padding: 0; font-size: 12px; text-decoration: underline; }
+
+/* Outside music events (auto notes): pale blue with ♪ */
+.day.has-auto { background: #e6f0fa; }
+.day.has-auto:hover { background: #d7e7f7; }
+table.rooms td.date.has-auto { background: #e6f0fa; }
+.auto-line { font-size: 11px; color: #1f4f86; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.auto-notes { margin-top: 8px; background: #eef5fc; border: 1px solid #c9dcf0; border-radius: 8px; padding: 8px 10px; }
+.auto-notes-head { font-size: 12px; font-weight: 700; color: #1f4f86; margin-bottom: 2px; }
+.auto-notes .date-note { padding: 3px 0; border-bottom: 1px solid #dbe7f3; }
+.auto-notes .date-note:last-child { border-bottom: none; }
+.sync-panel { display: flex; justify-content: space-between; align-items: center; gap: 16px; }

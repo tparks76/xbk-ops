@@ -282,8 +282,25 @@ export async function addDateNote(form: FormData) {
 
 export async function deleteDateNote(form: FormData) {
   const supabase = await createClient();
-  const { error } = await supabase.from("date_notes").delete().eq("id", str(form, "id"));
+  // Auto-added notes are hidden instead, so the daily sync doesn't bring them back.
+  const { error } =
+    str(form, "auto") === "1"
+      ? await supabase.from("date_notes").update({ hidden: true }).eq("id", str(form, "id"))
+      : await supabase.from("date_notes").delete().eq("id", str(form, "id"));
   if (error) back(form, { error: cleanError(error.message) });
   revalidatePath("/", "layout");
-  back(form, { ok: "Note deleted." });
+  back(form, { ok: str(form, "auto") === "1" ? "Event note hidden." : "Note deleted." });
+}
+
+// "Sync now" for outside music events (owner/booker).
+export async function syncEventsNow(form: FormData) {
+  const staff = await getStaff();
+  if (!staff?.canBook) back(form, { error: "Only a booker or owner can sync events." });
+  const { syncEvents } = await import("@/lib/sync-events");
+  const r = await syncEvents();
+  revalidatePath("/", "layout");
+  if (r.error) back(form, { error: `Event sync: ${r.error}` });
+  back(form, {
+    ok: `Outside events synced: ${r.found} found, ${r.saved} saved, ${r.removed} removed${r.complete ? "" : " (some months couldn't be read; will retry tomorrow)"}.`,
+  });
 }

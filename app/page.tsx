@@ -18,7 +18,7 @@ import {
 } from "@/lib/dates";
 import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import type { Hold } from "@/lib/types";
+import type { DateNote, Hold } from "@/lib/types";
 
 type Search = Promise<{ m?: string; view?: string; room?: string; show?: string; error?: string }>;
 
@@ -46,9 +46,14 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   const supabase = await createClient();
 
   // Date notes (competing events etc.): those dates show yellow.
-  const { data: noteRows } = await supabase.from("date_notes").select("date,body").gte("date", from).lte("date", to).order("created_at");
-  const notes: Record<string, string[]> = {};
-  for (const n of (noteRows ?? []) as { date: string; body: string }[]) (notes[n.date] ??= []).push(n.body);
+  const { data: noteRows } = await supabase.from("date_notes").select("*").gte("date", from).lte("date", to).order("created_at");
+  const notes: Record<string, string[]> = {}; // yours (yellow)
+  const autoNotes: Record<string, string[]> = {}; // outside events (blue ♪)
+  for (const n of (noteRows ?? []) as DateNote[]) {
+    if (n.hidden) continue;
+    if (n.source && n.source !== "manual") (autoNotes[n.date] ??= []).push(n.body);
+    else (notes[n.date] ??= []).push(n.body);
+  }
 
   // Every running challenge from today on, whatever month is showing.
   const { data: chRows } = await supabase
@@ -135,6 +140,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
           holds={holds}
           allHolds={everything}
           notes={notes}
+          autoNotes={autoNotes}
           canBook={staff.canBook}
         />
       ) : (
@@ -152,9 +158,17 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
               const dow = parseISO(d).getUTCDay();
               return (
                 <tr key={d} className={dow === 0 || dow >= 5 ? "weekend" : ""}>
-                  <td className={notes[d] ? "date has-note" : "date"} title={notes[d]?.join("\n")}>
+                  <td
+                    className={notes[d] ? "date has-note" : autoNotes[d] ? "date has-auto" : "date"}
+                    title={[...(notes[d] ?? []), ...(autoNotes[d] ?? []).map((x) => `♪ ${x}`)].join("\n") || undefined}
+                  >
                     <Link href={`/day/${d}`}>{fmtDate(d, { year: undefined })}</Link>
                     {notes[d] && <div className="note-line">{notes[d][0]}</div>}
+                    {autoNotes[d] && (
+                      <div className="auto-line">
+                        ♪ {autoNotes[d].length > 1 ? `${autoNotes[d].length} events in town` : autoNotes[d][0]}
+                      </div>
+                    )}
                   </td>
                   {rooms.map((r) => {
                     const s = stackFor(holds, r.id, d);

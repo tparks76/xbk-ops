@@ -119,6 +119,13 @@ ok(st.every(r => r.status === 'offer_out'), 'mark_offer_sent sets offer_out');
 ok((await q(`select status from offers where id=$1`, [off.id]))[0].status === 'sent', 'offer marked sent');
 await as('tobi@xbk.com');
 
+// date notes: one row per outside event, manual notes unaffected
+await db.exec(`insert into date_notes (date, body, created_by) values ('2027-08-01','Manual a','tobi@xbk.com'), ('2027-08-01','Manual b','tobi@xbk.com')`);
+await db.exec(`insert into date_notes (date, body, created_by, source, external_id) values ('2027-08-02','Band @ Arena','auto','ticketmaster','TM1') on conflict (source, external_id) do nothing`);
+await db.exec(`insert into date_notes (date, body, created_by, source, external_id) values ('2027-08-02','Band @ Arena','auto','ticketmaster','TM1') on conflict (source, external_id) do nothing`);
+ok((await q(`select count(*)::int n from date_notes where external_id='TM1'`))[0].n === 1, 'auto note not duplicated');
+ok((await q(`select count(*)::int n from date_notes where source='manual'`))[0].n === 2, 'manual notes allowed many');
+
 const ev = await q(`select count(*)::int n from hold_events`);
 ok(ev[0].n > 15, 'activity logged: ' + ev[0].n);
 console.log(`${pass} passed, ${fail} failed`);

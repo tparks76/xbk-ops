@@ -1,5 +1,7 @@
 import Link from "next/link";
 import Countdown from "@/components/Countdown";
+import Flash from "@/components/Flash";
+import { syncEventsNow } from "@/lib/actions";
 import { ROOM_SHORT } from "@/lib/data";
 import { fmtDate, todayISO } from "@/lib/dates";
 import { requireStaff } from "@/lib/session";
@@ -8,8 +10,13 @@ import type { Hold } from "@/lib/types";
 
 const STALE_DAYS = 14;
 
-export default async function ActionListPage() {
-  await requireStaff();
+export default async function ActionListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string }>;
+}) {
+  const staff = await requireStaff();
+  const sp = await searchParams;
   const supabase = await createClient();
   const today = todayISO();
 
@@ -40,6 +47,23 @@ export default async function ActionListPage() {
   return (
     <>
       <h1 style={{ marginBottom: 14 }}>Action list</h1>
+      <Flash ok={sp.ok} error={sp.error} />
+
+      {staff.canBook && (
+        <div className="panel sync-panel">
+          <div>
+            <h2>♪ Music in the metro</h2>
+            <div className="muted small">
+              Music events within 25 miles of Des Moines (next 12 months) are added to the calendar as blue notes every
+              morning. Use Sync now to update right away.
+            </div>
+          </div>
+          <form action={syncEventsNow}>
+            <input type="hidden" name="returnTo" value="/action-list" />
+            <button>Sync now</button>
+          </form>
+        </div>
+      )}
 
       <div className="panel">
         <h2>Challenges running ({challenged.length})</h2>

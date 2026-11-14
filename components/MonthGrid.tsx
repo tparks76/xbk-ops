@@ -19,11 +19,12 @@ type Props = {
   rooms: Room[]; // rooms shown (after the room filter)
   holds: Hold[]; // shown on the calendar (after the holds/confirmed filter)
   allHolds?: Hold[]; // every hold, for the rank a new hold will get
-  notes?: Record<string, string[]>; // date notes: those days show yellow
+  notes?: Record<string, string[]>; // your date notes: those days show yellow
+  autoNotes?: Record<string, string[]>; // outside music events: pale blue with ♪
   canBook: boolean;
 };
 
-export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, allHolds, notes = {}, canBook }: Props) {
+export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, allHolds, notes = {}, autoNotes = {}, canBook }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -90,7 +91,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
                 "day",
                 canBook ? "selectable" : "",
                 isSel ? "selected" : "",
-                notes[d] ? "has-note" : "",
+                notes[d] ? "has-note" : autoNotes[d] ? "has-auto" : "",
                 monthKey(d) !== m ? "out" : "",
                 d === today ? "today" : "",
               ].join(" ")}
@@ -102,6 +103,11 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
                 <div className="note-line" title={notes[d].join("\n")}>
                   {notes[d].length > 1 ? `${notes[d].length} notes: ` : ""}
                   {notes[d][0]}
+                </div>
+              )}
+              {autoNotes[d] && (
+                <div className="auto-line" title={autoNotes[d].join("\n")}>
+                  ♪ {autoNotes[d].length > 1 ? `${autoNotes[d].length} events in town` : autoNotes[d][0]}
                 </div>
               )}
               {rooms.map((r) => (

@@ -72,6 +72,10 @@ export type DateNote = {
   id: string;
   date: string;
   body: string;
+  source?: string; // "manual" or "ticketmaster"
+  venue?: string | null;
+  url?: string | null;
+  hidden?: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
