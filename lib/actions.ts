@@ -299,8 +299,12 @@ export async function syncEventsNow(form: FormData) {
   const { syncEvents } = await import("@/lib/sync-events");
   const r = await syncEvents();
   revalidatePath("/", "layout");
-  if (r.error) back(form, { error: `Event sync: ${r.error}` });
-  back(form, {
-    ok: `Outside events synced: ${r.found} found, ${r.saved} saved, ${r.removed} removed${r.complete ? "" : " (some months couldn't be read; will retry tomorrow)"}.`,
+  const parts = Object.entries(r.sources).map(([k, v]) => {
+    const name = k === "jambase" ? "JamBase" : "Ticketmaster";
+    if (v.error) return `${name}: ${v.error}`;
+    return `${name} ${v.found}${v.skippedDupes ? ` (${v.skippedDupes} already on Ticketmaster)` : ""}`;
   });
+  const summary = `Outside events synced. ${parts.join(" · ")}. ${r.saved} saved, ${r.removed} removed.`;
+  if (r.error && r.saved === 0) back(form, { error: `Event sync: ${r.error}` });
+  back(form, { ok: summary });
 }
