@@ -97,7 +97,6 @@ export function defaultVarCosts(): VarCost[] {
 
 export function defaultTerms(room = "xbk"): Terms {
   const first = setupsFor(room)[0];
-  const adv = Math.round(first.cap * 0.8);
   return {
     dealType: "flat",
     guarantee: 0,
@@ -109,8 +108,8 @@ export function defaultTerms(room = "xbk"): Terms {
     setupCap: first.cap,
     customCap: 0,
     tiers: [
-      { name: "Advance", price: 0, qty: adv },
-      { name: "Day of show", price: 0, qty: first.cap - adv },
+      { name: "Advance", price: 0, qty: first.cap },
+      { name: "Day of show", price: 0, qty: 0 },
     ],
     taxPct: 7,
     costs: defaultCosts(),
@@ -195,16 +194,17 @@ export function tierTotal(t: Terms): number {
   return t.tiers.reduce((s, x) => s + Math.max(0, x.qty), 0);
 }
 
-// After a setup change: fill tiers in order up to capacity; the last tier takes
-// whatever is left, so the tiers always add up to capacity.
+// After a setup change: the first tier (Advance) takes the whole capacity,
+// less anything already put in later tiers.
 export function fitTiers(tiers: Tier[], cap: number): Tier[] {
-  if (tiers.length === 0) return [{ name: "General admission", price: 0, qty: cap }];
+  if (tiers.length === 0) return [{ name: "Advance", price: 0, qty: cap }];
   let left = cap;
-  return tiers.map((x, i) => {
-    const qty = i === tiers.length - 1 ? left : Math.min(Math.max(0, x.qty), left);
+  const rest = tiers.slice(1).map((x) => {
+    const qty = Math.min(Math.max(0, x.qty), left);
     left -= qty;
-    return { ...x, qty: Math.max(0, qty) };
+    return { ...x, qty };
   });
+  return [{ ...tiers[0], qty: left }, ...rest];
 }
 
 // Gross for n tickets, filling tiers in the order listed.
