@@ -13,7 +13,7 @@ import type { Hold } from "@/lib/types";
 
 type Props = {
   params: Promise<{ date: string }>;
-  searchParams: Promise<{ error?: string; ok?: string; released?: string; confirmed?: string; release?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; released?: string; confirmed?: string; release?: string; ask?: string; kind?: string }>;
 };
 
 export default async function DayPage({ params, searchParams }: Props) {
@@ -84,6 +84,29 @@ export default async function DayPage({ params, searchParams }: Props) {
         <Link href={`/?m=${monthKey(date)}`}>Back to calendar</Link>
       </div>
 
+      {sp.ask && (
+        <div className="modal-backdrop">
+          <div className="modal" role="dialog" aria-modal="true">
+            <h2>Hold placed ✓</h2>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>
+              {sp.kind === "rental"
+                ? "Would you like to fill out the rental form for this date?"
+                : "Would you like to build an offer for this date?"}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Link
+                className="button-link primary-link"
+                href={`${sp.kind === "rental" ? "/rentals/new" : "/offers/new"}?holds=${sp.ask}`}
+              >
+                {sp.kind === "rental" ? "Yes, open rental form" : "Yes, build offer"}
+              </Link>
+              <Link className="button-link" href={`/day/${date}`}>
+                No, stay on this day
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
       {pivot && others.length > 0 ? (
         <>
           <Flash error={sp.error} />

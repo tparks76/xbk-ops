@@ -46,7 +46,7 @@ export async function placeHolds(form: FormData) {
   if (dates.length === 0 || !dates.every(isValidISO)) {
     back(form, { error: "Pick at least one valid date." });
   }
-  await rpc(form, "place_holds", {
+  const placed = (await rpc(form, "place_holds", {
     p_room: room,
     p_dates: dates,
     p_title: str(form, "title"),
@@ -55,9 +55,12 @@ export async function placeHolds(form: FormData) {
     p_agent_company: str(form, "agent_company"),
     p_agent_email: str(form, "agent_email"),
     p_notes: str(form, "notes"),
-  });
+  })) as { id: string }[] | null;
   const sorted = [...dates].sort();
-  redirect(`/day/${sorted[0]}?ok=${encodeURIComponent(`Hold placed on ${dates.length} date(s).`)}`);
+  const ids = ((placed ?? []) as { id: string }[]).map((h) => h.id).join(",");
+  const kind = str(form, "kind") === "rental" ? "rental" : "show";
+  // Land on the day with the same "build an offer / rental form?" pop-up as the calendar.
+  redirect(`/day/${sorted[0]}?ask=${ids}&kind=${kind}`);
 }
 
 export type CalendarHoldState = {
