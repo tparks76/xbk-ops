@@ -452,7 +452,7 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
           </tbody>
         </table>
         <label className="inline" style={{ marginTop: 8 }}>
-          Try tickets sold
+          Projected tickets
           <input type="number" min={0} value={custom} onChange={(e) => setCustom(e.target.value === "" ? "" : Number(e.target.value))} />
         </label>
         <div className="be">
