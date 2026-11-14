@@ -65,6 +65,11 @@ export default function HoldCard({
         <strong className="hold-title">{hold.title}</strong>
         {hold.kind === "rental" && <span className="badge rental">Rental</span>}
         {hold.status === "offer_out" && <span className="badge offer">Offer out</span>}
+        {offerId && (
+          <Link className="button-link show-offer" href={`/offers/${offerId}`}>
+            Show offer
+          </Link>
+        )}
       </div>
 
       {(hold.agent_name || hold.agent_company || hold.agent_email) && (
@@ -98,16 +103,10 @@ export default function HoldCard({
 
       {canBook && (
         <div className="hold-actions">
-          {offerId ? (
-            <Link className="button-link" href={`/offers/${offerId}`}>
-              View offer
+          {!offerId && !confirmed && (
+            <Link className="button-link" href={`/offers/new?holds=${hold.id}`}>
+              Build offer
             </Link>
-          ) : (
-            !confirmed && (
-              <Link className="button-link" href={`/offers/new?holds=${hold.id}`}>
-                Build offer
-              </Link>
-            )
           )}
           {emailText && <CopyButton text={emailText} />}
           {!confirmed && (
