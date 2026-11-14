@@ -20,28 +20,27 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   let holds: Hold[] = [];
   let offers: Offer[] = [];
   if (q) {
-    // Characters that would break the search filter are dropped.
-    const term = q.replace(/[,()"\\%*]/g, " ").trim();
-    const like = `"*${term}*"`;
+    // Every word must appear somewhere (any order); characters that would
+    // break the database filter are dropped.
+    const words = q
+      .replace(/[,()"\\%*:]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 8);
+    const anyCol = (cols: string[], w: string) => cols.map((c) => `${c}.ilike.*${w}*`).join(",");
+    const holdCols = ["title", "agent_name", "agent_company", "agent_email", "notes"];
+    const offerCols = ["title", "agent_name", "agent_company", "agent_email"];
     const supabase = await createClient();
-    let hq = supabase
-      .from("holds")
-      .select("*")
-      .or(
-        ["title", "agent_name", "agent_company", "agent_email", "notes"].map((c) => `${c}.ilike.${like}`).join(","),
-      )
-      .order("date")
-      .limit(500);
+
+    let hq = supabase.from("holds").select("*").order("date").limit(500);
+    for (const w of words) hq = hq.or(anyCol(holdCols, w));
     if (!withReleased) hq = hq.neq("status", "released");
     const { data: h } = await hq;
     holds = (h ?? []) as Hold[];
 
-    const { data: o } = await supabase
-      .from("offers")
-      .select("*")
-      .or(["title", "agent_name", "agent_company", "agent_email"].map((c) => `${c}.ilike.${like}`).join(","))
-      .order("updated_at", { ascending: false })
-      .limit(100);
+    let oq = supabase.from("offers").select("*").order("updated_at", { ascending: false }).limit(100);
+    for (const w of words) oq = oq.or(anyCol(offerCols, w));
+    const { data: o } = await oq;
     offers = (o ?? []) as Offer[];
   }
 

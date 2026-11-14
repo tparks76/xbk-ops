@@ -17,7 +17,10 @@ export default async function OffersPage({ searchParams }: { searchParams: Searc
   const supabase = await createClient();
 
   let query = supabase.from("offers").select("*").order("updated_at", { ascending: false }).limit(300);
-  if (q) query = query.ilike("title", `%${q.replace(/[%_\\]/g, "\\$&")}%`);
+  // Every word of the search must appear in the artist name, in any order.
+  for (const w of q.replace(/[%_\\*]/g, " ").split(/\s+/).filter(Boolean).slice(0, 8)) {
+    query = query.ilike("title", `%${w}%`);
+  }
   const { data } = await query;
   const offers = (data ?? []) as Offer[];
 
