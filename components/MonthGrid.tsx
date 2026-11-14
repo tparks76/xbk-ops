@@ -110,7 +110,14 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
           <span className="muted">{sorted.map((d) => fmtDate(d, { weekday: undefined, year: undefined })).join(", ")}</span>
           <span className="spacer" />
           <button onClick={() => setSelected([])}>Clear</button>
-          <button className="primary" onClick={() => setOpen(true)}>
+          <button
+            className="primary"
+            onClick={() => {
+              // With one room filtered on the calendar, hold in that room.
+              if (rooms.length === 1) setRoom(rooms[0].id);
+              setOpen(true);
+            }}
+          >
             Hold these dates
           </button>
         </div>
