@@ -368,7 +368,11 @@ export function offerEmailText(h: OfferHeader, t: Terms): string {
   const tiers = t.tiers.filter((x) => x.qty > 0 || x.price > 0);
   if (tiers.length) {
     lines.push(`Tickets: ${tiers.map((x) => `${x.name || "Tickets"} ${money(x.price)} (${x.qty})`).join(" · ")}`);
-    lines.push(`Gross potential: ${money(budgetAt(t, capacity(t)).gross)}`);
+    const so = budgetAt(t, capacity(t));
+    lines.push(`Gross potential: ${money(cents(so.gross))}`);
+    if (t.taxPct > 0) {
+      lines.push(`Less ${t.taxPct}% sales tax/fees: −${money(cents(so.taxes))} · Gross after tax: ${money(cents(so.adjGross))}`);
+    }
   }
   if (showsCostsToAgent(t)) {
     const costs = approvedLines(t);

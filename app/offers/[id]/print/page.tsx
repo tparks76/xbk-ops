@@ -33,6 +33,8 @@ export default async function OfferSheetPage({ params }: { params: Promise<{ id:
   const venue = ROOM_FULL[offer.room_id] ?? offer.room_id;
   const cap = capacity(t);
   const tiers = t.tiers.filter((x) => x.qty > 0 || x.price > 0);
+  const sellout = budgetAt(t, cap);
+  const cents = (n: number) => Math.round(n * 100) / 100;
 
   const details: [string, string][] = (
     [
@@ -131,14 +133,25 @@ export default async function OfferSheetPage({ params }: { params: Promise<{ id:
                   </tr>
                 ))}
                 <tr className="total">
-                  <td>Total</td>
+                  <td>Gross potential</td>
                   <td />
                   <td>{cap}</td>
-                  <td>{money(budgetAt(t, cap).gross)}</td>
+                  <td>{money(cents(sellout.gross))}</td>
                 </tr>
+                {t.taxPct > 0 && (
+                  <>
+                    <tr>
+                      <td colSpan={3}>Less sales tax/fees ({t.taxPct}%)</td>
+                      <td>−{money(cents(sellout.taxes))}</td>
+                    </tr>
+                    <tr className="total">
+                      <td colSpan={3}>Gross after tax</td>
+                      <td>{money(cents(sellout.adjGross))}</td>
+                    </tr>
+                  </>
+                )}
               </tbody>
             </table>
-            {t.taxPct > 0 && <div className="muted small">Sales tax/fees of {t.taxPct}% are deducted from gross.</div>}
           </>
         )}
 
