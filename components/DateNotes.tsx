@@ -50,7 +50,7 @@ export default function DateNotes({
                 ) : (
                   n.body
                 )}
-                <span className="muted small"> · via {n.source === "jambase" ? "JamBase" : "Ticketmaster"}</span>
+                <span className="muted small"> · via {n.source === "venue" ? "venue website" : "Ticketmaster"}</span>
               </div>
               {canBook && (
                 <form action={deleteDateNote}>

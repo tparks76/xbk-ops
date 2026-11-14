@@ -54,8 +54,8 @@ export default async function ActionListPage({
           <div>
             <h2>♪ Music in the metro</h2>
             <div className="muted small">
-              Music events within 25 miles of Des Moines (next 12 months) from Ticketmaster and JamBase are added to the
-              calendar as blue notes every morning. Use Sync now to update right away.
+              Shows at the venues on your <Link href="/venues">Venues to watch</Link> list are added to the calendar as
+              blue notes every morning. Use Sync now to update right away.
             </div>
           </div>
           <form action={syncEventsNow}>

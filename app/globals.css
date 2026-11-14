@@ -314,3 +314,21 @@ table.rooms td.date.has-auto { background: #e6f0fa; }
 .auto-notes .date-note { padding: 3px 0; border-bottom: 1px solid #dbe7f3; }
 .auto-notes .date-note:last-child { border-bottom: none; }
 .sync-panel { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+
+/* Venues to watch */
+.venue-row { display: grid; grid-template-columns: 180px minmax(200px, 1.4fr) minmax(160px, 1fr) 200px 190px; gap: 8px; align-items: center; }
+.venue-row input { width: 100%; font-size: 13px; }
+.venue-row .status { white-space: nowrap; }
+.venue-row.add { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.venue-actions { display: inline-flex; gap: 6px; align-items: center; }
+.inline-check { display: inline-flex; gap: 3px; align-items: center; }
+.venue-delete { margin-top: 2px; }
+table.venues td { border-bottom: 1px solid var(--line); }
+tr.inactive input { color: var(--muted); }
+.neg { color: var(--challenge); font-weight: 600; }
+.test-result.good { border-color: var(--confirmed); }
+.test-result.bad { border-color: var(--offer); background: var(--offer-bg); }
+.venue-head { font-size: 12px; font-weight: 600; color: var(--muted); padding: 0 8px 6px; border-bottom: 1px solid var(--line); }
+.venue-actions { justify-content: flex-end; }
+table.venues td { padding-left: 8px; padding-right: 8px; }
+.venue-row.add { padding-left: 8px; padding-right: 8px; }

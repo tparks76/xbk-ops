@@ -299,12 +299,57 @@ export async function syncEventsNow(form: FormData) {
   const { syncEvents } = await import("@/lib/sync-events");
   const r = await syncEvents();
   revalidatePath("/", "layout");
-  const parts = Object.entries(r.sources).map(([k, v]) => {
-    const name = k === "jambase" ? "JamBase" : "Ticketmaster";
-    if (v.error) return `${name}: ${v.error}`;
-    return `${name} ${v.found}${v.skippedDupes ? ` (${v.skippedDupes} already on Ticketmaster)` : ""}`;
-  });
-  const summary = `Outside events synced. ${parts.join(" · ")}. ${r.saved} saved, ${r.removed} removed.`;
-  if (r.error && r.saved === 0) back(form, { error: `Event sync: ${r.error}` });
+  const parts = r.venues.map((v) => `${v.name} ${v.error ? "(couldn't read)" : v.found}`);
+  if (r.ticketmaster) parts.push(`Ticketmaster ${r.ticketmaster.error ? "(error)" : r.ticketmaster.found}`);
+  const summary = `Outside events synced: ${parts.join(" · ") || "nothing to sync"}. ${r.removed} removed.`;
+  if (r.error && r.saved === 0 && parts.length === 0) back(form, { error: `Event sync: ${r.error}` });
   back(form, { ok: summary });
+}
+
+// ---------------------------------------------------------------------------
+// Watched venues
+// ---------------------------------------------------------------------------
+
+function cleanUrl(u: string): string | null {
+  const t = u.trim().replace(/^webcal:/i, "https:");
+  try {
+    const url = new URL(/^https?:\/\//i.test(t) ? t : `https://${t}`);
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+export async function saveVenue(form: FormData) {
+  const staff = await getStaff();
+  if (!staff?.canBook) back(form, { error: "Only a booker or owner can change venues." });
+  const name = str(form, "name");
+  const url = cleanUrl(str(form, "url"));
+  if (!name || !url) back(form, { error: "Enter the venue name and a valid web address." });
+  const fields = { name, url, ignore_words: str(form, "ignore_words"), active: str(form, "active") !== "0" };
+  const supabase = await createClient();
+  const id = str(form, "id");
+  const { error } = id
+    ? await supabase.from("watched_venues").update(fields).eq("id", id)
+    : await supabase.from("watched_venues").insert(fields);
+  if (error) {
+    back(form, {
+      error: error.message.includes("watched_venues")
+        ? "Venues aren't set up yet. Run 0007_watched_venues.sql in Supabase."
+        : cleanError(error.message),
+    });
+  }
+  revalidatePath("/venues");
+  back(form, { ok: id ? `${name} saved.` : `${name} added. Click Test to check it.` });
+}
+
+export async function deleteVenue(form: FormData) {
+  const supabase = await createClient();
+  const id = str(form, "id");
+  // Remove the venue's upcoming event notes too.
+  await supabase.from("date_notes").delete().eq("source", "venue").like("external_id", `${id}:%`);
+  const { error } = await supabase.from("watched_venues").delete().eq("id", id);
+  if (error) back(form, { error: cleanError(error.message) });
+  revalidatePath("/", "layout");
+  back(form, { ok: "Venue removed." });
 }
