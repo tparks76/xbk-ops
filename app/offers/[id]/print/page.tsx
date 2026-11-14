@@ -12,6 +12,7 @@ import {
   money,
   normalizeTerms,
   showsCostsToAgent,
+  walkOut,
   VENUE_ADDRESS,
   VENUE_WEBSITE,
 } from "@/lib/offer";
@@ -110,6 +111,20 @@ export default async function OfferSheetPage({ params }: { params: Promise<{ id:
             </tr>
           </tbody>
         </table>
+
+        {cap > 0 && (
+          <div className="sheet-walkout">
+            <div className="sheet-walkout-head">
+              <span>Walk out potential (sellout)</span>
+              <strong>{money(cents(walkOut(t).amount))}</strong>
+            </div>
+            <ul>
+              {walkOut(t).steps.map((x, i) => (
+                <li key={i}>{x}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {tiers.length > 0 && (
           <>

@@ -281,3 +281,11 @@ h3.sub { font-size: 14px; margin: 18px 0 4px; }
 .sheet-notes p { margin: 0 0 8px; white-space: pre-wrap; }
 .sheet-notes ul { margin: 0 0 8px; padding-left: 18px; }
 .sheet-notes li { margin-bottom: 3px; }
+.walkout { margin-top: 12px; border: 2px solid var(--confirmed); border-radius: 8px; padding: 10px 12px; background: var(--confirmed-bg); }
+.walkout-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; }
+.walkout-head strong { font-size: 20px; color: var(--confirmed); }
+.walkout ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.sheet-walkout { margin: 16px 0 4px; border: 2px solid #111; border-radius: 6px; padding: 10px 14px; }
+.sheet-walkout-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+.sheet-walkout-head strong { font-size: 20px; letter-spacing: 0; }
+.sheet-walkout ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }

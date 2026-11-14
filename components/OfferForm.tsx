@@ -18,6 +18,7 @@ import {
   tierTotal,
   totalCosts,
   varCostAmount,
+  walkOut,
   type DealType,
   type Terms,
 } from "@/lib/offer";
@@ -218,6 +219,18 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
             </div>
           )}
           <div className="deal-preview">{dealText(t)}</div>
+          <div className="walkout">
+            <div className="walkout-head">
+              <span>Walk out potential</span>
+              <strong>{money(Math.round(walkOut(t).amount * 100) / 100)}</strong>
+            </div>
+            <div className="muted small">What the artist receives if the show sells out.</div>
+            <ul>
+              {walkOut(t).steps.map((x, i) => (
+                <li key={i}>{x}</li>
+              ))}
+            </ul>
+          </div>
         </section>
 
         <section className="panel">
@@ -466,6 +479,7 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
           Projected tickets
           <input type="number" min={0} value={custom} onChange={(e) => setCustom(e.target.value === "" ? "" : Number(e.target.value))} />
         </label>
+        <div className="be">Walk out potential: {money(Math.round(walkOut(t).amount))}</div>
         <div className="be">
           {cap === 0
             ? "Add ticket tiers to see break-even."

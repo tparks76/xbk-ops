@@ -2,7 +2,7 @@
 // Pure functions: used on the offer form (live budget), the printable sheet
 // and Copy for email, so all three always agree.
 
-import { STANDARD_PROVISIONS } from "@/lib/provisions";
+import { STANDARD_PROVISIONS } from "./provisions";
 
 export type DealType = "flat" | "vs" | "door" | "bonus";
 
@@ -176,6 +176,8 @@ export function normalizeTerms(raw: unknown): Terms {
   };
 }
 
+const cents = (n: number) => Math.round(n * 100) / 100;
+
 export const money = (n: number) =>
   n.toLocaleString("en-US", {
     style: "currency",
@@ -295,6 +297,41 @@ export function breakEven(t: Terms): number | null {
   return null;
 }
 
+// Walk out potential: what the artist takes home if the show sells out,
+// with the steps that get there (for the form, offer sheet and email).
+export function walkOut(t: Terms): { amount: number; steps: string[] } {
+  const cap = capacity(t);
+  const b = budgetAt(t, cap);
+  const r = (n: number) => money(cents(n));
+  const steps: string[] = [];
+  if (cap === 0) return { amount: b.artist, steps };
+  steps.push(`Sellout gross: ${cap} tickets = ${r(b.gross)}`);
+  if (t.taxPct > 0) steps.push(`Less ${t.taxPct}% sales tax/fees: −${r(b.taxes)} = ${r(b.adjGross)}`);
+  const pctBase = t.pctBasis === "net" ? Math.max(0, b.net) : b.adjGross;
+  if (t.dealType === "vs" || t.dealType === "door") {
+    if (t.pctBasis === "net") steps.push(`Less approved show expenses: −${r(b.approved)} = net ${r(b.net)}`);
+    const pct = (t.percent / 100) * pctBase;
+    steps.push(`${t.percent}% of ${t.pctBasis === "net" ? "net" : "gross after tax"}: ${r(pct)}`);
+    if (t.dealType === "vs") {
+      steps.push(
+        pct >= t.guarantee
+          ? `Greater than the ${r(t.guarantee)} guarantee, so the artist receives ${r(pct)}`
+          : `Less than the ${r(t.guarantee)} guarantee, so the artist receives the guarantee`,
+      );
+    }
+  } else if (t.dealType === "flat") {
+    steps.length = 0;
+    steps.push(`Flat guarantee: ${r(t.guarantee)}`);
+  } else if (t.dealType === "bonus") {
+    steps.length = 0;
+    steps.push(`Guarantee: ${r(t.guarantee)}`);
+    for (const x of t.bonuses.filter((x) => x.at > 0 && x.amount > 0 && cap >= x.at).sort((a, c) => a.at - c.at)) {
+      steps.push(`Bonus at ${x.at} tickets: +${r(x.amount)}`);
+    }
+  }
+  return { amount: b.artist, steps };
+}
+
 // One-line deal description for the agent.
 export function dealText(t: Terms): string {
   const after = t.pctBasis === "net" ? "net box office receipts after approved show expenses" : "gross box office receipts";
@@ -354,8 +391,6 @@ export type OfferHeader = {
   from?: string;
 };
 
-const cents = (n: number) => Math.round(n * 100) / 100;
-
 // Plain-text offer, ready to paste into an email.
 export function offerEmailText(h: OfferHeader, t: Terms): string {
   const lines: string[] = [];
@@ -375,6 +410,9 @@ export function offerEmailText(h: OfferHeader, t: Terms): string {
     if (t.taxPct > 0) {
       lines.push(`Less ${t.taxPct}% sales tax/fees: −${money(cents(so.taxes))} · Gross after tax: ${money(cents(so.adjGross))}`);
     }
+  }
+  if (capacity(t) > 0) {
+    lines.push(`Walk out potential (sellout): ${money(cents(walkOut(t).amount))}`);
   }
   if (showsCostsToAgent(t)) {
     const costs = approvedLines(t);
