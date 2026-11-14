@@ -166,7 +166,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
                     {notes[d] && <div className="note-line">{notes[d][0]}</div>}
                     {autoNotes[d] && (
                       <div className="auto-line">
-                        ♪ {autoNotes[d].length > 1 ? `${autoNotes[d].length} events in town` : autoNotes[d][0]}
+                        ♪ {autoNotes[d].length} other show{autoNotes[d].length === 1 ? "" : "s"}
                       </div>
                     )}
                   </td>

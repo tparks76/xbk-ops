@@ -107,7 +107,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
               )}
               {autoNotes[d] && (
                 <div className="auto-line" title={autoNotes[d].join("\n")}>
-                  ♪ {autoNotes[d].length > 1 ? `${autoNotes[d].length} events in town` : autoNotes[d][0]}
+                  ♪ {autoNotes[d].length} other show{autoNotes[d].length === 1 ? "" : "s"}
                 </div>
               )}
               {rooms.map((r) => (
