@@ -78,12 +78,14 @@ export const VENUE_ADDRESS = "1159 24th Street, Des Moines, IA 50311";
 export const VENUE_WEBSITE = "www.xbklive.com";
 
 export function defaultCosts(room = "xbk"): Cost[] {
-  // The Annex: Support and Hospitality as show expenses, plus Staffing (budget only).
+  // The Annex: Support and Hospitality as show expenses (amounts filled in per
+  // show), plus Staffing and Marketing (budget only).
   if (room === "annex") {
     return [
-      { label: "Support", amount: 250, approved: true },
-      { label: "Hospitality", amount: 100, approved: true },
-      { label: "Staffing", amount: 0, approved: false },
+      { label: "Support", amount: 0, approved: true },
+      { label: "Hospitality", amount: 0, approved: true },
+      { label: "Staffing", amount: 100, approved: false },
+      { label: "Marketing", amount: 50, approved: false },
     ];
   }
   return [
