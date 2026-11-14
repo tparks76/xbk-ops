@@ -80,20 +80,20 @@ export const VENUE_WEBSITE = "www.xbklive.com";
 export function defaultCosts(): Cost[] {
   return [
     { label: "Support", amount: 250, approved: true },
-    { label: "Sound & Lights", amount: 250, approved: true },
-    { label: "Marketing", amount: 150, approved: true },
-    { label: "Box Office", amount: 50, approved: true },
     { label: "Hospitality", amount: 100, approved: true },
+    { label: "Sound & Lights", amount: 250, approved: false },
+    { label: "Marketing", amount: 150, approved: false },
+    { label: "Box Office", amount: 50, approved: false },
   ];
 }
 
 export function defaultVarCosts(): VarCost[] {
   return [
-    { label: "ASCAP", mode: "pct", rate: 0.8, approved: true },
-    { label: "BMI", mode: "pct", rate: 0.5, approved: true },
-    { label: "GMR", mode: "pct", rate: 0.16, approved: true },
-    { label: "SESAC", mode: "per_ticket", rate: 0.0478, approved: true },
-    { label: "Insurance", mode: "per_ticket", rate: 0.5, approved: true },
+    { label: "ASCAP", mode: "pct", rate: 0.8, approved: false },
+    { label: "BMI", mode: "pct", rate: 0.5, approved: false },
+    { label: "GMR", mode: "pct", rate: 0.16, approved: false },
+    { label: "SESAC", mode: "per_ticket", rate: 0.0478, approved: false },
+    { label: "Insurance", mode: "per_ticket", rate: 0.5, approved: false },
   ];
 }
 
