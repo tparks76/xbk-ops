@@ -32,7 +32,7 @@ export default async function OfferSheetPage({ params }: { params: Promise<{ id:
   const holds = (await holdsByIds(offer.hold_ids)).filter((h) => h.status !== "released");
   const venue = ROOM_FULL[offer.room_id] ?? offer.room_id;
   const cap = capacity(t);
-  const tiers = t.tiers.filter((x) => x.qty > 0 || x.price > 0);
+  const tiers = t.tiers.filter((x) => x.qty > 0);
   const sellout = budgetAt(t, cap);
   const cents = (n: number) => Math.round(n * 100) / 100;
 
