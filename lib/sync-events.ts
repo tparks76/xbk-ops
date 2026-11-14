@@ -40,13 +40,6 @@ const ymd = (d: Date) => d.toISOString().slice(0, 10);
 const norm = (s: string) => s.toLowerCase().replace(/^the\s+/, "").replace(/[^a-z0-9]/g, "");
 const showKey = (date: string, headliner: string) => `${date}|${norm(headliner).slice(0, 10)}`;
 
-function fmtTime(t?: string) {
-  if (!t) return "";
-  const [h, m] = t.split(":").map(Number);
-  if (!Number.isFinite(h)) return "";
-  const ap = h >= 12 ? "PM" : "AM";
-  return ` ${((h + 11) % 12) + 1}:${String(m || 0).padStart(2, "0")} ${ap}`;
-}
 
 // ---------------------------------------------------------------------------
 // Ticketmaster (optional)
@@ -107,7 +100,7 @@ async function ticketmaster(apikey: string) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || OUR_VENUES.some((r) => r.test(`${venue} ${v?.address?.line1 ?? ""}`))) continue;
     rows.push({
       date,
-      body: `${e.name}${venue ? ` @ ${venue}` : ""}${fmtTime(e.dates?.start?.localTime)}`,
+      body: `${shortTitle(e._embedded?.attractions?.[0]?.name ?? e.name)}${venue ? ` @ ${venue}` : ""}`,
       created_by: "auto",
       source: "ticketmaster",
       external_id: e.id,
@@ -146,6 +139,19 @@ async function removeMissing(db: Db, source: string, keep: Set<string>, prefix?:
     removed += d?.length ?? 0;
   }
   return removed;
+}
+
+// Just the artist: drop tour names, support acts, "presents", times etc.
+// "Live Nation presents: Zac Brown Band - Love & Fear Tour w/ Guest" -> "Zac Brown Band"
+export function shortTitle(title: string): string {
+  let t = title.replace(/\s+/g, " ").trim();
+  t = t.replace(/^.*?\bpresents?\b\s*[:\-–—]?\s*/i, "") || t;
+  t = t.replace(/^(an )?evening with\s+/i, "");
+  t = t.split(/\s+(?:[-–—|•:+]|w\/|with|feat\.?|ft\.?|featuring|and special guests?|plus)\s+/i)[0];
+  t = t.split(/\s*[:(|]\s*/)[0];
+  t = t.replace(/\s*[-–—,;]+\s*$/, "").trim();
+  if (!t) t = title.trim();
+  return t.length > 40 ? `${t.slice(0, 38).trim()}…` : t;
 }
 
 export function splitWords(s: string): string[] {
@@ -200,7 +206,7 @@ export async function syncEvents(): Promise<SyncResult> {
         .filter((e) => !tmKeys.has(showKey(e.date, e.title)))
         .map((e) => ({
           date: e.date,
-          body: `${e.title} @ ${v.name}${fmtTime(e.time)}`,
+          body: `${shortTitle(e.title)} @ ${v.name}`,
           created_by: "auto",
           source: "venue",
           external_id: `${v.id}:${e.uid}`.slice(0, 500),
