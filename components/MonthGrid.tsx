@@ -17,11 +17,12 @@ type Props = {
   weeks: string[][];
   allRooms: Room[];
   rooms: Room[]; // rooms shown (after the room filter)
-  holds: Hold[];
+  holds: Hold[]; // shown on the calendar (after the holds/confirmed filter)
+  allHolds?: Hold[]; // every hold, for the rank a new hold will get
   canBook: boolean;
 };
 
-export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, canBook }: Props) {
+export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, allHolds, canBook }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -186,7 +187,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
                 <div className="field-label">Dates</div>
                 <div className="date-chips">
                   {sorted.map((d) => {
-                    const rank = nextRank(stackFor(holds, room, d));
+                    const rank = nextRank(stackFor(allHolds ?? holds, room, d));
                     return (
                       <span key={d} className={rank === null ? "date-chip bad" : "date-chip"}>
                         <input type="hidden" name="date" value={d} />

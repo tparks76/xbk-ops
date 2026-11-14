@@ -9,11 +9,13 @@ export default function MonthPicker({
   m,
   view,
   room,
+  show = "all",
   thisYear,
 }: {
   m: string;
   view: string;
   room: string;
+  show?: string;
   thisYear: number;
 }) {
   const router = useRouter();
@@ -23,7 +25,7 @@ export default function MonthPicker({
   const years = Array.from({ length: end - start + 1 }, (_, i) => start + i);
 
   function go(year: number, month: number) {
-    const p = new URLSearchParams({ m: `${year}-${String(month).padStart(2, "0")}`, view, room });
+    const p = new URLSearchParams({ m: `${year}-${String(month).padStart(2, "0")}`, view, room, show });
     router.push(`/?${p.toString()}`);
   }
 

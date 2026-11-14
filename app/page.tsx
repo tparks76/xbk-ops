@@ -20,7 +20,7 @@ import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { Hold } from "@/lib/types";
 
-type Search = Promise<{ m?: string; view?: string; room?: string; error?: string }>;
+type Search = Promise<{ m?: string; view?: string; room?: string; show?: string; error?: string }>;
 
 export default async function CalendarPage({ searchParams }: { searchParams: Search }) {
   const staff = await requireStaff();
@@ -36,7 +36,12 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   const grid = monthGrid(m);
   const from = view === "month" ? grid[0][0] : `${m}-01`;
   const to = view === "month" ? grid[grid.length - 1][6] : daysInMonth(m).at(-1)!;
-  const holds = await getHolds(from, to);
+  // Show filter: everything, holds only, or confirmed only.
+  const show = sp.show === "holds" || sp.show === "confirmed" ? sp.show : "all";
+  const everything = await getHolds(from, to);
+  const holds = everything.filter((h) =>
+    show === "holds" ? h.status === "hold" || h.status === "offer_out" : show === "confirmed" ? h.status === "confirmed" : true,
+  );
 
   // Every running challenge from today on, whatever month is showing.
   const supabase = await createClient();
@@ -54,7 +59,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   const challengerTitles = new Map((chBy ?? []).map((h: { id: string; title: string }) => [h.id, h.title]));
 
   const link = (over: Record<string, string>) => {
-    const p = new URLSearchParams({ m, view, room: roomFilter, ...over });
+    const p = new URLSearchParams({ m, view, room: roomFilter, show, ...over });
     return `/?${p.toString()}`;
   };
 
@@ -66,7 +71,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
         <Link className="button-link" href={link({ m: addMonths(m, -1) })}>
           ←
         </Link>
-        <MonthPicker m={m} view={view} room={roomFilter} thisYear={Number(today.slice(0, 4))} />
+        <MonthPicker m={m} view={view} room={roomFilter} show={show} thisYear={Number(today.slice(0, 4))} />
         <Link className="button-link" href={link({ m: addMonths(m, 1) })}>
           →
         </Link>
@@ -78,6 +83,17 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
           <button>Search</button>
         </form>
         <div className="spacer" />
+        <div className="seg">
+          <Link className={show === "all" ? "on" : ""} href={link({ show: "all" })}>
+            Holds & confirmed
+          </Link>
+          <Link className={show === "holds" ? "on" : ""} href={link({ show: "holds" })}>
+            Holds
+          </Link>
+          <Link className={show === "confirmed" ? "on" : ""} href={link({ show: "confirmed" })}>
+            Confirmed
+          </Link>
+        </div>
         <div className="seg">
           <Link className={view === "month" ? "on" : ""} href={link({ view: "month" })}>
             Month
@@ -111,6 +127,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
           allRooms={allRooms}
           rooms={rooms}
           holds={holds}
+          allHolds={everything}
           canBook={staff.canBook}
         />
       ) : (
