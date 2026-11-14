@@ -4,6 +4,7 @@ import CopyButton from "@/components/CopyButton";
 import Flash from "@/components/Flash";
 import OfferForm from "@/components/OfferForm";
 import { markOfferSent } from "@/lib/actions";
+import { getRooms } from "@/lib/data";
 import { fmtDate, fmtDateTime } from "@/lib/dates";
 import { STATUS_LABEL, normalizeTerms, offerEmailText } from "@/lib/offer";
 import { ROOM_FULL, holdLine, holdsByIds } from "@/lib/offer-data";
@@ -32,7 +33,7 @@ export default async function OfferPage({ params, searchParams }: Props) {
     {
       title: offer.title,
       roomName: ROOM_FULL[offer.room_id] ?? offer.room_id,
-      dates: live.map((h) => fmtDate(h.date)),
+      dates: offer.hold_ids.length ? live.map((h) => fmtDate(h.date)) : [terms.dateText.trim() || "TBD"],
       from: staff.name,
     },
     terms,
@@ -59,6 +60,7 @@ export default async function OfferPage({ params, searchParams }: Props) {
       </div>
       <Flash error={sp.error} ok={sp.ok} />
       <OfferForm
+        rooms={offer.hold_ids.length ? [] : await getRooms()}
         offerId={offer.id}
         holdIds={offer.hold_ids}
         roomId={offer.room_id}

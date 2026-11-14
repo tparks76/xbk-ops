@@ -16,6 +16,7 @@ import {
 type HoldLine = { id: string; label: string; released: boolean };
 
 type Props = {
+  rooms?: { id: string; name: string }[]; // shown when the offer has no holds
   offerId?: string;
   holdIds: string[];
   roomId: string;
@@ -33,7 +34,8 @@ type Props = {
 
 const num = (v: string) => (v === "" ? 0 : Number(v));
 
-export default function OfferForm({ offerId, holdIds, roomId, holds, initial, returnTo, canEdit }: Props) {
+export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds, initial, returnTo, canEdit }: Props) {
+  const unassigned = holdIds.length === 0;
   const [t, setT] = useState<Terms>(initial.terms);
   const [custom, setCustom] = useState<number | "">("");
   const set = <K extends keyof Terms>(k: K, v: Terms[K]) => setT((x) => ({ ...x, [k]: v }));
@@ -54,7 +56,8 @@ export default function OfferForm({ offerId, holdIds, roomId, holds, initial, re
       <input type="hidden" name="returnTo" value={returnTo} />
       {offerId && <input type="hidden" name="id" value={offerId} />}
       <input type="hidden" name="hold_ids" value={holdIds.join(",")} />
-      <input type="hidden" name="room_id" value={roomId} />
+      {!unassigned && <input type="hidden" name="room_id" value={roomId} />}
+      {unassigned && <input type="hidden" name="unassigned" value="1" />}
       <input type="hidden" name="terms" value={JSON.stringify(t)} />
 
       <fieldset className="offer-main" disabled={!canEdit}>
@@ -82,17 +85,43 @@ export default function OfferForm({ offerId, holdIds, roomId, holds, initial, re
               <input name="agent_email" type="email" defaultValue={initial.agent_email} />
             </label>
           </div>
-          <div className="field-label" style={{ marginTop: 10 }}>
-            Dates on this offer (same terms for each)
-          </div>
-          <ul className="offer-dates">
-            {holds.map((h) => (
-              <li key={h.id} className={h.released ? "released" : ""}>
-                {h.label}
-                {h.released && " · released"}
-              </li>
-            ))}
-          </ul>
+          {unassigned ? (
+            <div className="form-grid" style={{ marginTop: 10 }}>
+              <label>
+                Room
+                <select name="room_id" defaultValue={roomId}>
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Date(s)
+                <input
+                  value={t.dateText}
+                  onChange={(e) => set("dateText", e.target.value)}
+                  placeholder="TBD, a range, or dates not on the calendar"
+                />
+              </label>
+              <div className="muted small span2">Not linked to calendar holds.</div>
+            </div>
+          ) : (
+            <>
+              <div className="field-label" style={{ marginTop: 10 }}>
+                Dates on this offer (same terms for each)
+              </div>
+              <ul className="offer-dates">
+                {holds.map((h) => (
+                  <li key={h.id} className={h.released ? "released" : ""}>
+                    {h.label}
+                    {h.released && " · released"}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </section>
 
         <section className="panel">

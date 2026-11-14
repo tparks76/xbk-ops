@@ -257,3 +257,4 @@ table.budget td.pos { color: var(--confirmed); font-weight: 600; }
 .sheet-venue { font-size: 22px !important; }
 .sheet-addr { font-size: 13px; color: #444; }
 @media print { .sheet-logo { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+.button-link.primary-link { background: var(--accent); border-color: var(--accent); color: #fff; }

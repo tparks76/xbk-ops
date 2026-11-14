@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import Flash from "@/components/Flash";
 import OfferForm from "@/components/OfferForm";
+import { getRooms } from "@/lib/data";
 import { defaultTerms } from "@/lib/offer";
 import { holdLine, holdsByIds } from "@/lib/offer-data";
 import { requireStaff } from "@/lib/session";
@@ -14,6 +15,29 @@ export default async function NewOfferPage({ searchParams }: { searchParams: Sea
   const sp = await searchParams;
   const ids = (sp.holds ?? "").split(",").filter(Boolean);
   const holds = (await holdsByIds(ids)).filter((h) => h.status !== "released");
+
+  // From the Offers tab: an offer not tied to any calendar date.
+  if (ids.length === 0) {
+    const rooms = await getRooms();
+    return (
+      <>
+        <div className="day-head">
+          <h1>New offer</h1>
+          <Link href="/offers">Back to offers</Link>
+        </div>
+        <Flash error={sp.error} />
+        <OfferForm
+          rooms={rooms}
+          holdIds={[]}
+          roomId={rooms[0]?.id ?? "xbk"}
+          holds={[]}
+          initial={{ title: "", agent_name: "", agent_company: "", agent_email: "", terms: defaultTerms() }}
+          returnTo="/offers/new"
+          canEdit
+        />
+      </>
+    );
+  }
 
   if (holds.length === 0) {
     return (

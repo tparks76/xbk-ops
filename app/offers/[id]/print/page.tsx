@@ -91,6 +91,7 @@ export default async function OfferSheetPage({ params }: { params: Promise<{ id:
             <tr>
               <th>Date{holds.length > 1 ? "s" : ""}</th>
               <td>
+                {offer.hold_ids.length === 0 && <div>{t.dateText.trim() || "TBD"}</div>}
                 {holds.map((h) => (
                   <div key={h.id}>{fmtDate(h.date, { weekday: "long", month: "long" })}</div>
                 ))}

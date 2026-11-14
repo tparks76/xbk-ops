@@ -28,6 +28,7 @@ export type Terms = {
   radius: string;
   expires: string; // YYYY-MM-DD
   notes: string;
+  dateText: string; // for offers not tied to calendar holds, e.g. "TBD" or "March 2027"
 };
 
 export const DEAL_LABELS: Record<DealType, string> = {
@@ -66,6 +67,7 @@ export function defaultTerms(): Terms {
     radius: "100 miles, 60 days before / 30 days after",
     expires: "",
     notes: "",
+    dateText: "",
   };
 }
 

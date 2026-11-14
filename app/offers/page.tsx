@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Hold, Offer } from "@/lib/types";
 
 export default async function OffersPage() {
-  await requireStaff();
+  const staff = await requireStaff();
   const supabase = await createClient();
   const { data } = await supabase.from("offers").select("*").order("updated_at", { ascending: false }).limit(200);
   const offers = (data ?? []) as Offer[];
@@ -17,10 +17,18 @@ export default async function OffersPage() {
 
   return (
     <>
-      <h1 style={{ marginBottom: 14 }}>Offers</h1>
+      <div className="day-head">
+        <h1>Offers</h1>
+        <span className="spacer" />
+        {staff.canBook && (
+          <Link className="button-link primary-link" href="/offers/new">
+            + New offer
+          </Link>
+        )}
+      </div>
       <div className="panel">
         {offers.length === 0 ? (
-          <div className="muted">No offers yet. Place holds from the calendar and choose “Build an offer”.</div>
+          <div className="muted">No offers yet. Click “+ New offer”, or place holds from the calendar and choose “Build an offer”.</div>
         ) : (
           <table className="list">
             <thead>
@@ -45,7 +53,11 @@ export default async function OffersPage() {
                       <Link href={`/offers/${o.id}`}>{o.title}</Link>
                     </td>
                     <td>{ROOM_FULL[o.room_id]}</td>
-                    <td>{dates.map((d) => fmtDate(d, { weekday: undefined })).join(", ") || "—"}</td>
+                    <td>
+                      {o.hold_ids.length === 0
+                        ? normalizeTerms(o.terms).dateText || "No date"
+                        : dates.map((d) => fmtDate(d, { weekday: undefined })).join(", ") || "—"}
+                    </td>
                     <td>{dealText(normalizeTerms(o.terms))}</td>
                     <td>
                       <span className={`badge status-${o.status}`}>{STATUS_LABEL[o.status]}</span>

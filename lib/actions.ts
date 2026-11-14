@@ -214,15 +214,17 @@ export async function saveOffer(form: FormData) {
   };
   if (!fields.title) back(form, { error: "Artist name is required." });
 
+  const unassigned = str(form, "unassigned") === "1";
   if (id) {
-    const { error } = await supabase.from("offers").update(fields).eq("id", id);
+    const update = unassigned ? { ...fields, room_id: str(form, "room_id") } : fields;
+    const { error } = await supabase.from("offers").update(update).eq("id", id);
     if (error) back(form, { error: cleanError(error.message) });
     revalidatePath("/", "layout");
     redirect(`/offers/${id}?ok=${encodeURIComponent("Offer saved.")}`);
   }
 
   const holdIds = str(form, "hold_ids").split(",").filter(Boolean);
-  if (holdIds.length === 0) back(form, { error: "This offer isn't linked to any holds." });
+  if (holdIds.length === 0 && !unassigned) back(form, { error: "This offer isn't linked to any holds." });
   const { data, error } = await supabase
     .from("offers")
     .insert({ ...fields, hold_ids: holdIds, room_id: str(form, "room_id"), created_by: staff!.email })
