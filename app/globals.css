@@ -334,8 +334,13 @@ table.venues td { padding-left: 8px; padding-right: 8px; }
 .venue-row.add { padding-left: 8px; padding-right: 8px; }
 
 /* Fixed-size day boxes: extra holds scroll inside the box instead of stretching it */
-.day { height: 132px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.day { height: 132px; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
 .day::-webkit-scrollbar { width: 6px; }
 .day::-webkit-scrollbar-thumb { background: #cfcfca; border-radius: 3px; }
 .day .num { position: sticky; top: -6px; z-index: 1; background: inherit; flex-shrink: 0; }
 .day > * { flex-shrink: 0; }
+
+/* Page scrolling: the page scrollbar is always there (no jumping), and scrolling
+   inside a day box passes on to the page once the box reaches its end. */
+html { overflow-y: scroll; scrollbar-gutter: stable; }
+.day { overscroll-behavior: auto; }
