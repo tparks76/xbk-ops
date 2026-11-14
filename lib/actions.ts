@@ -239,3 +239,15 @@ export async function markOfferSent(form: FormData) {
   await rpc(form, "mark_offer_sent", { p_offer: str(form, "id") });
   back(form, { ok: "Marked as sent. These holds now show Offer out." });
 }
+
+export async function deleteOffer(form: FormData) {
+  const supabase = await createClient();
+  const id = str(form, "id");
+  const { data, error } = await supabase.from("offers").delete().eq("id", id).select("id");
+  if (error) back(form, { error: cleanError(error.message) });
+  if (!data || data.length === 0) {
+    back(form, { error: "Couldn't delete that offer. Has the 0004_delete_offers.sql update been run in Supabase?" });
+  }
+  revalidatePath("/", "layout");
+  redirect(`/offers?ok=${encodeURIComponent("Offer deleted.")}`);
+}

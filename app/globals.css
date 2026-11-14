@@ -266,3 +266,9 @@ table.rows td.center input { width: auto; }
 table.rows td.calc { font-size: 13px; white-space: nowrap; color: var(--muted); }
 h3.sub { font-size: 14px; margin: 18px 0 4px; }
 .cost-totals { margin-top: 10px; font-size: 13px; font-weight: 600; }
+.offer-search { display: inline-flex; gap: 6px; align-items: center; margin-left: 12px; }
+.offer-search input { width: 220px; }
+.delete-offer summary { cursor: pointer; color: var(--challenge); font-size: 13px; list-style: none; }
+.delete-offer summary::-webkit-details-marker { display: none; }
+.delete-offer[open] summary { margin-bottom: 4px; }
+.delete-offer form { flex-wrap: wrap; max-width: 300px; }

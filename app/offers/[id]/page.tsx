@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CopyButton from "@/components/CopyButton";
+import DeleteOffer from "@/components/DeleteOffer";
 import Flash from "@/components/Flash";
 import OfferForm from "@/components/OfferForm";
 import { markOfferSent } from "@/lib/actions";
@@ -57,6 +58,7 @@ export default async function OfferPage({ params, searchParams }: Props) {
             <button className="primary">Mark offer sent</button>
           </form>
         )}
+        {staff.canBook && <DeleteOffer id={offer.id} title={offer.title} returnTo={`/offers/${offer.id}`} />}
       </div>
       <Flash error={sp.error} ok={sp.ok} />
       <OfferForm
