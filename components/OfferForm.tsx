@@ -61,7 +61,19 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
   const showG = t.dealType !== "door";
 
   return (
-    <form action={saveOffer} className="offer-layout">
+    <form
+      action={saveOffer}
+      className="offer-layout"
+      // Numbers are typed, never nudged: no scroll-wheel or arrow-key changes.
+      onWheelCapture={(e) => {
+        const el = e.target as HTMLInputElement;
+        if (el.type === "number" && document.activeElement === el) el.blur();
+      }}
+      onKeyDownCapture={(e) => {
+        const el = e.target as HTMLInputElement;
+        if (el.type === "number" && (e.key === "ArrowUp" || e.key === "ArrowDown")) e.preventDefault();
+      }}
+    >
       <input type="hidden" name="returnTo" value={returnTo} />
       {offerId && <input type="hidden" name="id" value={offerId} />}
       <input type="hidden" name="hold_ids" value={holdIds.join(",")} />

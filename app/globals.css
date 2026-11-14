@@ -273,3 +273,7 @@ h3.sub { font-size: 14px; margin: 18px 0 4px; }
 .delete-offer[open] summary { margin-bottom: 4px; }
 .delete-offer form { flex-wrap: wrap; max-width: 300px; }
 .hold-head .show-offer { margin-left: auto; font-weight: 600; border-color: var(--text); }
+/* Offer tool: plain number boxes, no up/down arrows */
+.offer-layout input[type="number"]::-webkit-outer-spin-button,
+.offer-layout input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.offer-layout input[type="number"] { -moz-appearance: textfield; appearance: textfield; }

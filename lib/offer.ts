@@ -100,7 +100,7 @@ export function defaultTerms(room = "xbk"): Terms {
   return {
     dealType: "flat",
     guarantee: 0,
-    percent: 85,
+    percent: 70,
     pctBasis: "net",
     bonuses: [],
     setup: first.key,
