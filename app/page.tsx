@@ -73,6 +73,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
         <Link className="button-link" href={link({ m: monthKey(today) })}>
           Today
         </Link>
+        <form className="offer-search" action="/search">
+          <input name="q" type="search" placeholder="Search artist, agent, notes…" aria-label="Search" />
+          <button>Search</button>
+        </form>
         <div className="spacer" />
         <div className="seg">
           <Link className={view === "month" ? "on" : ""} href={link({ view: "month" })}>
