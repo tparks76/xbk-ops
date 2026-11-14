@@ -73,6 +73,14 @@ export default async function DayPage({ params, searchParams }: Props) {
   for (const o of (offerRows ?? []) as { id: string; hold_ids: string[] }[]) {
     for (const hid of o.hold_ids) offerFor.set(hid, o.id); // latest wins
   }
+  // Rental forms that cover holds on this date.
+  const { data: rentalRows } = holds.length
+    ? await supabase.from("rentals").select("id,hold_ids,updated_at").overlaps("hold_ids", holds.map((h) => h.id)).order("updated_at")
+    : { data: [] };
+  const rentalFor = new Map<string, string>();
+  for (const r of (rentalRows ?? []) as { id: string; hold_ids: string[] }[]) {
+    for (const hid of r.hold_ids) rentalFor.set(hid, r.id);
+  }
 
   return (
     <>
@@ -155,6 +163,7 @@ export default async function DayPage({ params, searchParams }: Props) {
                   isChallenging={false}
                   emailText={emailFor(stack.confirmed.title)}
                   offerId={offerFor.get(stack.confirmed.id)}
+                  rentalId={rentalFor.get(stack.confirmed.id)}
                 />
               )}
 
@@ -177,6 +186,7 @@ export default async function DayPage({ params, searchParams }: Props) {
                   emailText={emailFor(h.title)}
                   artistHoldCount={activeCount(h.title)}
                   offerId={offerFor.get(h.id)}
+                  rentalId={rentalFor.get(h.id)}
                 />
               ))}
             </section>

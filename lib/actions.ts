@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isValidISO } from "@/lib/dates";
 import { normalizeTerms } from "@/lib/offer";
+import { normalizeDetails, rentalProblems } from "@/lib/rental";
 import { getStaff } from "@/lib/session";
 
 // Every action posts back to the page it came from ("returnTo"),
@@ -243,6 +244,89 @@ export async function saveOffer(form: FormData) {
 export async function markOfferSent(form: FormData) {
   await rpc(form, "mark_offer_sent", { p_offer: str(form, "id") });
   back(form, { ok: "Marked as sent. These holds now show Offer out." });
+}
+
+// ---------------------------------------------------------------------------
+// Rentals
+// ---------------------------------------------------------------------------
+
+export async function saveRental(form: FormData) {
+  const staff = await getStaff();
+  if (!staff?.canBook) back(form, { error: "Only a booker or owner can save rentals." });
+  const supabase = await createClient();
+  const id = str(form, "id");
+  const roomId = str(form, "room_id");
+  let details;
+  try {
+    details = normalizeDetails(JSON.parse(str(form, "details") || "{}"));
+  } catch {
+    back(form, { error: "Couldn't read the rental form. Try again." });
+  }
+  const problems = rentalProblems(roomId, details!);
+  if (problems.length) back(form, { error: problems.join(" ") });
+
+  const fields = {
+    title: details!.client.trim(),
+    contact_name: details!.contact.name.trim() || null,
+    contact_email: details!.contact.email.trim().toLowerCase() || null,
+    event_date: details!.date || null,
+    details,
+    updated_at: new Date().toISOString(),
+  };
+  const unassigned = str(form, "unassigned") === "1";
+
+  if (id) {
+    const update = unassigned ? { ...fields, room_id: roomId } : fields;
+    const { error } = await supabase.from("rentals").update(update).eq("id", id);
+    if (error) back(form, { error: cleanError(error.message) });
+    revalidatePath("/", "layout");
+    redirect(`/rentals/${id}?ok=${encodeURIComponent("Rental saved.")}`);
+  }
+
+  const holdIds = str(form, "hold_ids").split(",").filter(Boolean);
+  if (holdIds.length === 0 && !unassigned) back(form, { error: "This rental isn't linked to any holds." });
+  const { data, error } = await supabase
+    .from("rentals")
+    .insert({ ...fields, hold_ids: holdIds, room_id: roomId, created_by: staff!.email })
+    .select("id")
+    .single();
+  if (error) {
+    back(form, {
+      error: /rentals/.test(error.message)
+        ? "Couldn't save. Has the 0009_rentals.sql update been run in Supabase?"
+        : cleanError(error.message),
+    });
+  }
+  revalidatePath("/", "layout");
+  redirect(`/rentals/${data!.id}?ok=${encodeURIComponent("Rental saved.")}`);
+}
+
+export async function markRentalSent(form: FormData) {
+  await rpc(form, "mark_rental_sent", { p_rental: str(form, "id") });
+  back(form, { ok: "Marked as sent. These holds now show Offer out." });
+}
+
+export async function setRentalStatus(form: FormData) {
+  const status = str(form, "status");
+  if (!["draft", "sent", "signed", "cancelled"].includes(status)) back(form, { error: "Unknown status." });
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("rentals")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", str(form, "id"));
+  if (error) back(form, { error: cleanError(error.message) });
+  revalidatePath("/", "layout");
+  back(form, { ok: "Status updated." });
+}
+
+export async function deleteRental(form: FormData) {
+  const supabase = await createClient();
+  const id = str(form, "id");
+  const { data, error } = await supabase.from("rentals").delete().eq("id", id).select("id");
+  if (error) back(form, { error: cleanError(error.message) });
+  if (!data || data.length === 0) back(form, { error: "Couldn't delete that rental." });
+  revalidatePath("/", "layout");
+  redirect(`/rentals?ok=${encodeURIComponent("Rental deleted.")}`);
 }
 
 export async function deleteOffer(form: FormData) {

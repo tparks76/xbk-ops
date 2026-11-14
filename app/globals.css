@@ -344,3 +344,35 @@ table.venues td { padding-left: 8px; padding-right: 8px; }
    inside a day box passes on to the page once the box reaches its end. */
 html { overflow-y: scroll; scrollbar-gutter: stable; }
 .day { overscroll-behavior: auto; }
+
+/* Rentals */
+.check-row { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 10px 0 4px; font-size: 14px; }
+.badge.status-signed { background: var(--confirmed-bg); color: var(--confirmed); }
+.badge.status-cancelled { background: var(--challenge-bg); color: var(--challenge); }
+table.fee-sum td:last-child { text-align: right; white-space: nowrap; }
+table.fee-sum tr.total td { font-weight: 700; border-top: 1px solid var(--line); }
+.contract { font-size: 13.5px; line-height: 1.5; }
+.contract p { margin: 6px 0; }
+.contract h4 { margin: 10px 0 2px; font-size: 13px; }
+.k-fill { background: #fff6c2; padding: 0 3px; border-radius: 2px; }
+.k-blank, .k-line { display: inline-block; min-width: 160px; border-bottom: 1px solid #111; height: 1em; vertical-align: baseline; }
+.k-blank.wide { min-width: 300px; }
+.k-blank.short { min-width: 70px; }
+.k-box { font-size: 15px; margin-right: 2px; }
+.k-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.k-cut { border-top: 1px dashed #111; margin: 14px 0 6px; padding-top: 2px; font-size: 11px; text-align: center; color: #555; }
+.k-list { margin: 4px 0 8px; padding-left: 22px; }
+.k-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 24px; }
+.k-signlines div { margin: 10px 0; }
+.k-addendum { margin-top: 28px; padding-top: 14px; border-top: 2px solid #111; }
+.k-addendum h2 { text-align: center; font-size: 18px; margin: 0; text-transform: uppercase; }
+.k-addendum h3.k-sub { text-align: center; text-transform: none; font-size: 15px; letter-spacing: 0; color: #111; margin: 2px 0 10px; }
+.k-addendum h4 { text-transform: uppercase; }
+.k-rider { columns: 2; column-gap: 24px; }
+.k-rider > div { break-inside: avoid; }
+.k-rider ul { margin: 2px 0 8px; padding-left: 18px; }
+.offer-main button.link { background: none; border: none; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; font-size: inherit; }
+@media print {
+  .k-fill { background: none; padding: 0; }
+  .k-addendum { break-before: page; border-top: none; }
+}

@@ -22,6 +22,7 @@ type Props = {
   emailText?: string; // this artist's upcoming holds, for pasting into an email
   artistHoldCount?: number; // this artist's upcoming active holds, all rooms
   offerId?: string; // offer that covers this hold, if any
+  rentalId?: string; // rental form that covers this hold, if any
 };
 
 function Hidden({ hold, returnTo }: { hold: Hold; returnTo: string }) {
@@ -44,6 +45,7 @@ export default function HoldCard({
   emailText,
   artistHoldCount = 0,
   offerId,
+  rentalId,
 }: Props) {
   const rank = hold.rank ?? 0;
   const confirmed = hold.status === "confirmed";
@@ -68,6 +70,11 @@ export default function HoldCard({
         {offerId && (
           <Link className="button-link show-offer" href={`/offers/${offerId}`}>
             Show offer
+          </Link>
+        )}
+        {rentalId && (
+          <Link className="button-link show-offer" href={`/rentals/${rentalId}`}>
+            Show rental
           </Link>
         )}
       </div>
@@ -103,7 +110,7 @@ export default function HoldCard({
 
       {canBook && (
         <div className="hold-actions">
-          {!offerId && !confirmed && hold.kind === "rental" && (
+          {!rentalId && !confirmed && hold.kind === "rental" && (
             <Link className="button-link" href={`/rentals/new?holds=${hold.id}`}>
               Rental form
             </Link>

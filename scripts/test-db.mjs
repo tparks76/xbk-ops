@@ -119,6 +119,21 @@ ok(st.every(r => r.status === 'offer_out'), 'mark_offer_sent sets offer_out');
 ok((await q(`select status from offers where id=$1`, [off.id]))[0].status === 'sent', 'offer marked sent');
 await as('tobi@xbk.com');
 
+// rentals: mark sent flips the rental's holds to offer_out; MOD can't
+await as('bill@xbk.com');
+const RH = await q(`select * from place_holds('xbk', array['2027-09-10']::date[], 'Drake Alumni', 'rental')`);
+const ren = (await q(`insert into rentals (hold_ids, room_id, title, event_date, details, created_by) values ($1, 'xbk', 'Drake Alumni', '2027-09-10', '{"rate":1500}', 'bill@xbk.com') returning *`, [RH.map(h => h.id)]))[0];
+ok(ren.status === 'draft', 'rental starts as draft');
+await as('mod@xbk.com');
+ok((await err(() => q(`select * from mark_rental_sent($1)`, [ren.id]))) !== null, 'MOD cannot mark a rental sent');
+await as('bill@xbk.com');
+await q(`select * from mark_rental_sent($1)`, [ren.id]);
+ok((await q(`select status from holds where id=$1`, [RH[0].id]))[0].status === 'offer_out', 'mark_rental_sent sets offer_out');
+ok((await q(`select status, sent_at from rentals where id=$1`, [ren.id]))[0].sent_at !== null, 'rental sent_at set');
+await q(`delete from rentals where id=$1`, [ren.id]);
+ok((await q(`select count(*)::int n from holds where id=$1`, [RH[0].id]))[0].n === 1, 'deleting a rental keeps its hold');
+await as('tobi@xbk.com');
+
 // date notes: one row per outside event, manual notes unaffected
 await db.exec(`insert into date_notes (date, body, created_by) values ('2027-08-01','Manual a','tobi@xbk.com'), ('2027-08-01','Manual b','tobi@xbk.com')`);
 await db.exec(`insert into date_notes (date, body, created_by, source, external_id) values ('2027-08-02','Band @ Arena','auto','ticketmaster','TM1') on conflict (source, external_id) do nothing`);

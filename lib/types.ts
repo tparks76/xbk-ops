@@ -80,3 +80,19 @@ export type DateNote = {
   created_at: string;
   updated_at: string;
 };
+
+export type Rental = {
+  id: string;
+  hold_ids: string[];
+  room_id: string;
+  title: string; // client / organization
+  contact_name: string | null;
+  contact_email: string | null;
+  event_date: string | null;
+  details: unknown;
+  status: "draft" | "sent" | "signed" | "cancelled";
+  created_by: string;
+  sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
