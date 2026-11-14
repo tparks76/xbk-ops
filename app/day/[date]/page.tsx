@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChallengesPanel from "@/components/ChallengesPanel";
+import DateNotes from "@/components/DateNotes";
 import ConfirmReleaseModal from "@/components/ConfirmReleaseModal";
 import Flash from "@/components/Flash";
 import HoldCard from "@/components/HoldCard";
@@ -9,7 +10,7 @@ import { ROOM_COLOR, holdsEmailText } from "@/lib/stack";
 import { addDays, fmtDate, isValidISO, monthKey, todayISO } from "@/lib/dates";
 import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import type { Hold } from "@/lib/types";
+import type { DateNote, Hold } from "@/lib/types";
 
 type Props = {
   params: Promise<{ date: string }>;
@@ -32,6 +33,8 @@ export default async function DayPage({ params, searchParams }: Props) {
   const holds = (holdRows ?? []) as Hold[];
 
   const byId = new Map(holds.map((h) => [h.id, h]));
+  const { data: noteRows } = await supabase.from("date_notes").select("*").eq("date", date).order("created_at");
+  const notes = (noteRows ?? []) as DateNote[];
 
   // Every active or confirmed hold, matched to artists by name (ignoring capitals
   // and extra spaces). One list feeds the Release holds count, its pop-up and
@@ -121,6 +124,8 @@ export default async function DayPage({ params, searchParams }: Props) {
       ) : (
         <Flash error={sp.error} ok={sp.ok} released={sp.released} />
       )}
+
+      <DateNotes date={date} notes={notes} canBook={staff.canBook} returnTo={`/day/${date}`} />
 
       <div className="columns">
         {rooms.map((room) => {

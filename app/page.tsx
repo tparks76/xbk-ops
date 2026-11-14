@@ -43,8 +43,14 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
     show === "holds" ? h.status === "hold" || h.status === "offer_out" : show === "confirmed" ? h.status === "confirmed" : true,
   );
 
-  // Every running challenge from today on, whatever month is showing.
   const supabase = await createClient();
+
+  // Date notes (competing events etc.): those dates show yellow.
+  const { data: noteRows } = await supabase.from("date_notes").select("date,body").gte("date", from).lte("date", to).order("created_at");
+  const notes: Record<string, string[]> = {};
+  for (const n of (noteRows ?? []) as { date: string; body: string }[]) (notes[n.date] ??= []).push(n.body);
+
+  // Every running challenge from today on, whatever month is showing.
   const { data: chRows } = await supabase
     .from("holds")
     .select("*")
@@ -128,6 +134,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
           rooms={rooms}
           holds={holds}
           allHolds={everything}
+          notes={notes}
           canBook={staff.canBook}
         />
       ) : (
@@ -145,8 +152,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
               const dow = parseISO(d).getUTCDay();
               return (
                 <tr key={d} className={dow === 0 || dow >= 5 ? "weekend" : ""}>
-                  <td className="date">
+                  <td className={notes[d] ? "date has-note" : "date"} title={notes[d]?.join("\n")}>
                     <Link href={`/day/${d}`}>{fmtDate(d, { year: undefined })}</Link>
+                    {notes[d] && <div className="note-line">{notes[d][0]}</div>}
                   </td>
                   {rooms.map((r) => {
                     const s = stackFor(holds, r.id, d);

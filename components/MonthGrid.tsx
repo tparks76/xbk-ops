@@ -19,10 +19,11 @@ type Props = {
   rooms: Room[]; // rooms shown (after the room filter)
   holds: Hold[]; // shown on the calendar (after the holds/confirmed filter)
   allHolds?: Hold[]; // every hold, for the rank a new hold will get
+  notes?: Record<string, string[]>; // date notes: those days show yellow
   canBook: boolean;
 };
 
-export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, allHolds, canBook }: Props) {
+export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, allHolds, notes = {}, canBook }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -89,6 +90,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
                 "day",
                 canBook ? "selectable" : "",
                 isSel ? "selected" : "",
+                notes[d] ? "has-note" : "",
                 monthKey(d) !== m ? "out" : "",
                 d === today ? "today" : "",
               ].join(" ")}
@@ -96,6 +98,12 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
               <Link href={`/day/${d}`} className="num" onClick={(e) => e.stopPropagation()}>
                 {parseISO(d).getUTCDate()}
               </Link>
+              {notes[d] && (
+                <div className="note-line" title={notes[d].join("\n")}>
+                  {notes[d].length > 1 ? `${notes[d].length} notes: ` : ""}
+                  {notes[d][0]}
+                </div>
+              )}
               {rooms.map((r) => (
                 <StackChip key={r.id} room={r.id} date={d} stack={stackFor(holds, r.id, d)} showRoom={rooms.length > 1} />
               ))}

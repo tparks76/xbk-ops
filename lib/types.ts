@@ -67,3 +67,12 @@ export type Offer = {
   created_at: string;
   updated_at: string;
 };
+
+export type DateNote = {
+  id: string;
+  date: string;
+  body: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};

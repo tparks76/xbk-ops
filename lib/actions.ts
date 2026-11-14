@@ -256,3 +256,34 @@ export async function deleteOffer(form: FormData) {
   revalidatePath("/", "layout");
   redirect(`/offers?ok=${encodeURIComponent("Offer deleted.")}`);
 }
+
+// ---------------------------------------------------------------------------
+// Date notes (competing events etc.; not holds)
+// ---------------------------------------------------------------------------
+
+export async function addDateNote(form: FormData) {
+  const staff = await getStaff();
+  if (!staff?.canBook) back(form, { error: "Only a booker or owner can add notes." });
+  const date = str(form, "date");
+  const body = str(form, "body");
+  if (!isValidISO(date) || !body) back(form, { error: "Type a note first." });
+  const supabase = await createClient();
+  const { error } = await supabase.from("date_notes").insert({ date, body, created_by: staff!.email });
+  if (error) {
+    back(form, {
+      error: error.message.includes("date_notes")
+        ? "Notes aren't set up yet. Run 0005_date_notes.sql in Supabase."
+        : cleanError(error.message),
+    });
+  }
+  revalidatePath("/", "layout");
+  back(form, { ok: "Note added." });
+}
+
+export async function deleteDateNote(form: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("date_notes").delete().eq("id", str(form, "id"));
+  if (error) back(form, { error: cleanError(error.message) });
+  revalidatePath("/", "layout");
+  back(form, { ok: "Note deleted." });
+}
