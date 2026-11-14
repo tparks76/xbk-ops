@@ -7,6 +7,7 @@ import {
   AGES,
   DEAL_LABELS,
   applySetup,
+  defaultCosts,
   setupsFor,
   approvedCosts,
   breakEven,
@@ -117,7 +118,8 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
                   value={room}
                   onChange={(e) => {
                     setRoom(e.target.value);
-                    setT((x) => applySetup(x, setupsFor(e.target.value)[0]));
+                    // New room: its setups and its default costs.
+                    setT((x) => ({ ...applySetup(x, setupsFor(e.target.value)[0]), costs: defaultCosts(e.target.value) }));
                   }}
                 >
                   {rooms.map((r) => (

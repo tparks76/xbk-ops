@@ -77,7 +77,15 @@ export const DEAL_LABELS: Record<DealType, string> = {
 export const VENUE_ADDRESS = "1159 24th Street, Des Moines, IA 50311";
 export const VENUE_WEBSITE = "www.xbklive.com";
 
-export function defaultCosts(): Cost[] {
+export function defaultCosts(room = "xbk"): Cost[] {
+  // The Annex: Support and Hospitality as show expenses, plus Staffing (budget only).
+  if (room === "annex") {
+    return [
+      { label: "Support", amount: 250, approved: true },
+      { label: "Hospitality", amount: 100, approved: true },
+      { label: "Staffing", amount: 0, approved: false },
+    ];
+  }
   return [
     { label: "Support", amount: 250, approved: true },
     { label: "Hospitality", amount: 100, approved: true },
@@ -114,7 +122,7 @@ export function defaultTerms(room = "xbk"): Terms {
       { name: "Day of show", price: 0, qty: 0 },
     ],
     taxPct: 7,
-    costs: defaultCosts(),
+    costs: defaultCosts(room),
     varCosts: defaultVarCosts(),
     support: "TBA",
     doors: "7:00 PM",
