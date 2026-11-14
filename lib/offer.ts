@@ -48,26 +48,29 @@ export function defaultTerms(): Terms {
       { name: "Advance", price: 0, qty: 0 },
       { name: "Day of show", price: 0, qty: 0 },
     ],
-    taxPct: 0,
+    taxPct: 7,
     costs: [
       { label: "Sound & lights", amount: 0 },
       { label: "Staffing & security", amount: 0 },
       { label: "Marketing", amount: 0 },
       { label: "Hospitality", amount: 0 },
     ],
-    support: "",
-    doors: "",
-    showTime: "",
-    curfew: "",
-    ages: "",
-    deposit: "",
-    merch: "",
-    hospitality: "",
-    radius: "",
+    support: "TBA",
+    doors: "7:00 PM",
+    showTime: "8:00 PM",
+    curfew: "11:00 PM",
+    ages: "All ages",
+    deposit: "50% on signing",
+    merch: "Artist sells, 0% venue split",
+    hospitality: "$150 buyout",
+    radius: "100 miles, 60 days before / 30 days after",
     expires: "",
     notes: "",
   };
 }
+
+export const VENUE_ADDRESS = "1159 24th Street, Des Moines, IA 50311";
+export const VENUE_WEBSITE = "www.xbklive.com";
 
 // Fill in anything missing (older offers, hand-edited data).
 export function normalizeTerms(raw: unknown): Terms {
@@ -169,7 +172,7 @@ export function breakEven(t: Terms): number | null {
 // One-line deal description for the agent.
 export function dealText(t: Terms): string {
   const after = t.pctBasis === "net" ? "net box office receipts after the listed costs" : "gross box office receipts";
-  const taxNote = t.taxPct > 0 ? ` (after ${t.taxPct}% taxes/fees)` : "";
+  const taxNote = t.taxPct > 0 ? ` (after ${t.taxPct}% sales tax/fees)` : "";
   switch (t.dealType) {
     case "flat":
       return `${money(t.guarantee)} flat guarantee`;
@@ -205,7 +208,7 @@ export type OfferHeader = {
 export function offerEmailText(h: OfferHeader, t: Terms): string {
   const lines: string[] = [];
   lines.push(`OFFER: ${h.title}`);
-  lines.push(`Venue: ${h.roomName}, Des Moines, IA`);
+  lines.push(`Venue: ${h.roomName}, ${VENUE_ADDRESS}`);
   lines.push(`Date${h.dates.length > 1 ? "s" : ""}: ${h.dates.join("; ")}`);
   if (h.dates.length > 1) lines.push(`(Terms below apply to each date.)`);
   lines.push("");
@@ -240,10 +243,9 @@ export function offerEmailText(h: OfferHeader, t: Terms): string {
     lines.push("");
     lines.push(t.notes.trim());
   }
-  if (h.from) {
-    lines.push("");
-    lines.push(h.from);
-  }
+  lines.push("");
+  if (h.from) lines.push(h.from);
+  lines.push(VENUE_WEBSITE);
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 

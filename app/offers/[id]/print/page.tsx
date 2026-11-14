@@ -10,6 +10,8 @@ import {
   normalizeTerms,
   showsCostsToAgent,
   totalCosts,
+  VENUE_ADDRESS,
+  VENUE_WEBSITE,
 } from "@/lib/offer";
 import { ROOM_FULL, holdsByIds } from "@/lib/offer-data";
 import { requireStaff } from "@/lib/session";
@@ -55,9 +57,14 @@ export default async function OfferSheetPage({ params }: { params: Promise<{ id:
 
       <article className="sheet">
         <header className="sheet-head">
-          <div>
-            <div className="sheet-venue">{venue}</div>
-            <div className="muted">Des Moines, Iowa</div>
+          <div className="sheet-brand">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/xbk-logo.jpg" alt="xBk" className="sheet-logo" />
+            <div>
+              <div className="sheet-venue">{venue}</div>
+              <div className="sheet-addr">{VENUE_ADDRESS}</div>
+              <div className="sheet-addr">{VENUE_WEBSITE}</div>
+            </div>
           </div>
           <div className="sheet-title">
             <div>OFFER</div>
@@ -128,7 +135,7 @@ export default async function OfferSheetPage({ params }: { params: Promise<{ id:
                 </tr>
               </tbody>
             </table>
-            {t.taxPct > 0 && <div className="muted small">Taxes/fees of {t.taxPct}% are deducted from gross.</div>}
+            {t.taxPct > 0 && <div className="muted small">Sales tax/fees of {t.taxPct}% are deducted from gross.</div>}
           </>
         )}
 

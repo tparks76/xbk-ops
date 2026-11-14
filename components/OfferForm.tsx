@@ -67,7 +67,7 @@ export default function OfferForm({ offerId, holdIds, roomId, holds, initial, re
             </label>
             <label>
               Support
-              <input value={t.support} onChange={(e) => set("support", e.target.value)} placeholder="TBA / names" />
+              <input value={t.support} onChange={(e) => set("support", e.target.value)} placeholder="Support act names" />
             </label>
             <label>
               Agent
@@ -195,7 +195,7 @@ export default function OfferForm({ offerId, holdIds, roomId, holds, initial, re
           <div className="row-tools">
             <button type="button" onClick={() => set("tiers", [...t.tiers, { name: "", price: 0, qty: 0 }])}>+ Add tier</button>
             <label className="inline">
-              Taxes/fees off gross (%)
+              Sales tax / fees off gross (%)
               <input type="number" min={0} max={100} step="any" value={t.taxPct || ""} onChange={(e) => set("taxPct", num(e.target.value))} />
             </label>
             <span className="muted">Capacity {cap}</span>
@@ -241,14 +241,14 @@ export default function OfferForm({ offerId, holdIds, roomId, holds, initial, re
           <div className="form-grid">
             {(
               [
-                ["doors", "Doors", "7:00 PM"],
-                ["showTime", "Show", "8:00 PM"],
-                ["curfew", "Curfew", "11:00 PM"],
+                ["doors", "Doors", ""],
+                ["showTime", "Show", ""],
+                ["curfew", "Curfew", ""],
                 ["ages", "Ages", "All ages / 18+ / 21+"],
-                ["deposit", "Deposit", "e.g. 50% on signing"],
-                ["merch", "Merch", "e.g. Artist sells, 0% venue split"],
-                ["hospitality", "Hospitality", "e.g. $150 buyout or per rider"],
-                ["radius", "Radius", "e.g. 100 miles, 60 days before / 30 after"],
+                ["deposit", "Deposit", ""],
+                ["merch", "Merch", ""],
+                ["hospitality", "Hospitality", "e.g. per rider"],
+                ["radius", "Radius", ""],
               ] as [keyof Terms, string, string][]
             ).map(([k, label, ph]) => (
               <label key={k}>
