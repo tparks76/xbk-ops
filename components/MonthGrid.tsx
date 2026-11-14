@@ -113,8 +113,8 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, can
           <button
             className="primary"
             onClick={() => {
-              // With one room filtered on the calendar, hold in that room.
-              if (rooms.length === 1) setRoom(rooms[0].id);
+              // One room filtered on the calendar: hold in that room. All rooms: xBk.
+              setRoom(rooms.length === 1 ? rooms[0].id : "xbk");
               setOpen(true);
             }}
           >
