@@ -258,3 +258,11 @@ table.budget td.pos { color: var(--confirmed); font-weight: 600; }
 .sheet-addr { font-size: 13px; color: #444; }
 @media print { .sheet-logo { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 .button-link.primary-link { background: var(--accent); border-color: var(--accent); color: #fff; }
+.setup-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: end; margin-bottom: 12px; }
+.setup-row input[type="number"] { width: 90px; }
+.warn { color: var(--offer); font-weight: 600; font-size: 13px; }
+table.rows th.center, table.rows td.center { text-align: center; width: 70px; }
+table.rows td.center input { width: auto; }
+table.rows td.calc { font-size: 13px; white-space: nowrap; color: var(--muted); }
+h3.sub { font-size: 14px; margin: 18px 0 4px; }
+.cost-totals { margin-top: 10px; font-size: 13px; font-weight: 600; }

@@ -31,7 +31,7 @@ export default async function NewOfferPage({ searchParams }: { searchParams: Sea
           holdIds={[]}
           roomId={rooms[0]?.id ?? "xbk"}
           holds={[]}
-          initial={{ title: "", agent_name: "", agent_company: "", agent_email: "", terms: defaultTerms() }}
+          initial={{ title: "", agent_name: "", agent_company: "", agent_email: "", terms: defaultTerms(rooms[0]?.id ?? "xbk") }}
           returnTo="/offers/new"
           canEdit
         />
@@ -66,7 +66,7 @@ export default async function NewOfferPage({ searchParams }: { searchParams: Sea
           agent_name: first.agent_name ?? "",
           agent_company: first.agent_company ?? "",
           agent_email: first.agent_email ?? "",
-          terms: defaultTerms(),
+          terms: defaultTerms(first.room_id),
         }}
         returnTo={`/offers/new?holds=${holds.map((h) => h.id).join(",")}`}
         canEdit

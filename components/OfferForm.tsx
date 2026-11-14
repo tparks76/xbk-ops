@@ -3,12 +3,20 @@
 import { useMemo, useState } from "react";
 import { saveOffer } from "@/lib/actions";
 import {
+  AGES,
   DEAL_LABELS,
+  applySetup,
+  setupsFor,
+  approvedCosts,
   breakEven,
   budgetAt,
   capacity,
   dealText,
+  fitTiers,
   money,
+  tierTotal,
+  totalCosts,
+  varCostAmount,
   type DealType,
   type Terms,
 } from "@/lib/offer";
@@ -36,6 +44,7 @@ const num = (v: string) => (v === "" ? 0 : Number(v));
 
 export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds, initial, returnTo, canEdit }: Props) {
   const unassigned = holdIds.length === 0;
+  const [room, setRoom] = useState(roomId);
   const [t, setT] = useState<Terms>(initial.terms);
   const [custom, setCustom] = useState<number | "">("");
   const set = <K extends keyof Terms>(k: K, v: Terms[K]) => setT((x) => ({ ...x, [k]: v }));
@@ -89,7 +98,14 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
             <div className="form-grid" style={{ marginTop: 10 }}>
               <label>
                 Room
-                <select name="room_id" defaultValue={roomId}>
+                <select
+                  name="room_id"
+                  value={room}
+                  onChange={(e) => {
+                    setRoom(e.target.value);
+                    setT((x) => applySetup(x, setupsFor(e.target.value)[0]));
+                  }}
+                >
                   {rooms.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name}
@@ -192,7 +208,30 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
         </section>
 
         <section className="panel">
-          <h2>Tickets</h2>
+          <h2>Room setup & tickets</h2>
+          <div className="setup-row">
+            {setupsFor(room).map((o) => (
+              <label key={o.key} className={t.setup === o.key ? "deal on" : "deal"}>
+                <input type="radio" checked={t.setup === o.key} onChange={() => setT((x) => applySetup(x, o))} />
+                {o.name} ({o.cap})
+              </label>
+            ))}
+            <label className={t.setup === "custom" ? "deal on" : "deal"}>
+              <input type="radio" checked={t.setup === "custom"} onChange={() => setT((x) => applySetup(x, "custom"))} />
+              Custom
+            </label>
+            {t.setup === "custom" && (
+              <label className="inline">
+                Capacity
+                <input
+                  type="number"
+                  min={0}
+                  value={t.customCap || ""}
+                  onChange={(e) => setT((x) => ({ ...x, customCap: num(e.target.value), tiers: fitTiers(x.tiers, num(e.target.value)) }))}
+                />
+              </label>
+            )}
+          </div>
           <table className="rows">
             <thead>
               <tr>
@@ -227,22 +266,27 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
               Sales tax / fees off gross (%)
               <input type="number" min={0} max={100} step="any" value={t.taxPct || ""} onChange={(e) => set("taxPct", num(e.target.value))} />
             </label>
-            <span className="muted">Capacity {cap}</span>
+            <span className={tierTotal(t) === cap ? "muted" : "warn"}>
+              Tiers total {tierTotal(t)} of {cap}
+              {tierTotal(t) !== cap && " — adjust quantities to match capacity"}
+            </span>
           </div>
         </section>
 
         <section className="panel">
-          <h2>Identified costs</h2>
+          <h2>Costs</h2>
           <div className="muted small" style={{ marginBottom: 6 }}>
+            Tick <strong>Approved</strong> for approved show expenses
             {showPct && t.pctBasis === "net"
-              ? "Deducted before the artist’s percentage, and listed on the offer."
-              : "Used for the budget only; not shown on the offer."}
+              ? ": they’re deducted before the artist’s percentage and listed on the offer. Unticked costs are in your budget only."
+              : ". With this deal type, costs are used for your budget only and aren’t shown on the offer."}
           </div>
           <table className="rows">
             <thead>
               <tr>
                 <th>Cost</th>
                 <th>Amount ($)</th>
+                <th className="center">Approved</th>
                 <th />
               </tr>
             </thead>
@@ -255,6 +299,9 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
                   <td>
                     <input type="number" min={0} step="any" value={c.amount || ""} onChange={(e) => set("costs", t.costs.map((y, j) => (j === i ? { ...y, amount: num(e.target.value) } : y)))} />
                   </td>
+                  <td className="center">
+                    <input type="checkbox" aria-label="Approved show expense" checked={c.approved} onChange={(e) => set("costs", t.costs.map((y, j) => (j === i ? { ...y, approved: e.target.checked } : y)))} />
+                  </td>
                   <td>
                     <button type="button" onClick={() => set("costs", t.costs.filter((_, j) => j !== i))} aria-label="Remove">✕</button>
                   </td>
@@ -262,7 +309,61 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
               ))}
             </tbody>
           </table>
-          <button type="button" onClick={() => set("costs", [...t.costs, { label: "", amount: 0 }])}>+ Add cost</button>
+          <button type="button" onClick={() => set("costs", [...t.costs, { label: "", amount: 0, approved: true }])}>+ Add cost</button>
+
+          <h3 className="sub">Variable costs</h3>
+          <div className="muted small" style={{ marginBottom: 6 }}>
+            PRO fees and insurance, worked out on a sold-out house ({cap} tickets). Percentages are of gross after
+            sales tax. Ticked = included in approved show expenses.
+          </div>
+          <table className="rows">
+            <thead>
+              <tr>
+                <th>Cost</th>
+                <th>Charged as</th>
+                <th>Rate</th>
+                <th>At sellout</th>
+                <th className="center">Included in expenses</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {t.varCosts.map((v, i) => (
+                <tr key={i}>
+                  <td>
+                    <input value={v.label} onChange={(e) => set("varCosts", t.varCosts.map((y, j) => (j === i ? { ...y, label: e.target.value } : y)))} />
+                  </td>
+                  <td>
+                    <select value={v.mode} onChange={(e) => set("varCosts", t.varCosts.map((y, j) => (j === i ? { ...y, mode: e.target.value as "pct" | "per_ticket" } : y)))}>
+                      <option value="pct">% of gross</option>
+                      <option value="per_ticket">$ per ticket</option>
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min={0}
+                      step="any"
+                      value={v.rate || ""}
+                      placeholder={v.mode === "pct" ? "%" : "$"}
+                      onChange={(e) => set("varCosts", t.varCosts.map((y, j) => (j === i ? { ...y, rate: num(e.target.value) } : y)))}
+                    />
+                  </td>
+                  <td className="calc">{money(Math.round(varCostAmount(t, v) * 100) / 100)}</td>
+                  <td className="center">
+                    <input type="checkbox" aria-label="Included in expenses" checked={v.approved} onChange={(e) => set("varCosts", t.varCosts.map((y, j) => (j === i ? { ...y, approved: e.target.checked } : y)))} />
+                  </td>
+                  <td>
+                    <button type="button" onClick={() => set("varCosts", t.varCosts.filter((_, j) => j !== i))} aria-label="Remove">✕</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button type="button" onClick={() => set("varCosts", [...t.varCosts, { label: "", mode: "pct", rate: 0, approved: true }])}>+ Add variable cost</button>
+          <div className="cost-totals">
+            Total costs {money(Math.round(totalCosts(t)))} · Approved show expenses {money(Math.round(approvedCosts(t)))}
+          </div>
         </section>
 
         <section className="panel">
@@ -273,10 +374,8 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
                 ["doors", "Doors", ""],
                 ["showTime", "Show", ""],
                 ["curfew", "Curfew", ""],
-                ["ages", "Ages", "All ages / 18+ / 21+"],
                 ["deposit", "Deposit", ""],
                 ["merch", "Merch", ""],
-                ["hospitality", "Hospitality", "e.g. per rider"],
                 ["radius", "Radius", ""],
               ] as [keyof Terms, string, string][]
             ).map(([k, label, ph]) => (
@@ -285,6 +384,16 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
                 <input value={t[k] as string} placeholder={ph} onChange={(e) => set(k, e.target.value as never)} />
               </label>
             ))}
+            <label>
+              Ages
+              <select value={t.ages} onChange={(e) => set("ages", e.target.value)}>
+                {AGES.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label>
               Offer expires
               <input type="date" value={t.expires} onChange={(e) => set("expires", e.target.value)} />
@@ -343,9 +452,10 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
         </div>
         {cap > 0 && (
           <div className="muted small">
-            Sellout: gross {money(Math.round(budgetAt(t, cap).gross))}
-            {t.taxPct > 0 && <>, taxes/fees {money(Math.round(budgetAt(t, cap).taxes))}</>}, costs{" "}
-            {money(Math.round(budgetAt(t, cap).costs))}. Net = gross after taxes/fees and costs.
+            Sellout gross {money(Math.round(budgetAt(t, cap).gross))}
+            {t.taxPct > 0 && <>, sales tax/fees {money(Math.round(budgetAt(t, cap).taxes))}</>}. Net = gross after tax and
+            approved show expenses ({money(Math.round(approvedCosts(t)))}). Venue = gross after tax, all costs (
+            {money(Math.round(totalCosts(t)))}) and the artist.
           </div>
         )}
       </aside>

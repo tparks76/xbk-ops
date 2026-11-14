@@ -3,13 +3,15 @@ import { notFound } from "next/navigation";
 import PrintButton from "@/components/PrintButton";
 import { fmtDate, todayISO } from "@/lib/dates";
 import {
+  approvedCosts,
+  approvedLines,
+  setupLabel,
   budgetAt,
   capacity,
   dealText,
   money,
   normalizeTerms,
   showsCostsToAgent,
-  totalCosts,
   VENUE_ADDRESS,
   VENUE_WEBSITE,
 } from "@/lib/offer";
@@ -34,6 +36,7 @@ export default async function OfferSheetPage({ params }: { params: Promise<{ id:
 
   const details: [string, string][] = (
     [
+      ["Setup", setupLabel(t)],
       ["Support", t.support],
       ["Doors", t.doors],
       ["Show", t.showTime],
@@ -41,7 +44,6 @@ export default async function OfferSheetPage({ params }: { params: Promise<{ id:
       ["Ages", t.ages],
       ["Deposit", t.deposit],
       ["Merch", t.merch],
-      ["Hospitality", t.hospitality],
       ["Radius", t.radius],
       ["Offer expires", t.expires ? fmtDate(t.expires) : ""],
     ] as [string, string][]
@@ -140,22 +142,23 @@ export default async function OfferSheetPage({ params }: { params: Promise<{ id:
           </>
         )}
 
-        {showsCostsToAgent(t) && t.costs.some((c) => c.amount > 0) && (
+        {showsCostsToAgent(t) && approvedLines(t).length > 0 && (
           <>
-            <h3>Costs deducted before percentage</h3>
+            <h3>Approved show expenses (deducted before percentage)</h3>
             <table className="sheet-table grid">
               <tbody>
-                {t.costs
-                  .filter((c) => c.amount > 0)
-                  .map((c, i) => (
-                    <tr key={i}>
-                      <td>{c.label}</td>
-                      <td>{money(c.amount)}</td>
-                    </tr>
-                  ))}
+                {approvedLines(t).map((c, i) => (
+                  <tr key={i}>
+                    <td>
+                      {c.label}
+                      {c.note && <span className="muted small"> ({c.note})</span>}
+                    </td>
+                    <td>{money(Math.round(c.amount * 100) / 100)}</td>
+                  </tr>
+                ))}
                 <tr className="total">
                   <td>Total</td>
-                  <td>{money(totalCosts(t))}</td>
+                  <td>{money(Math.round(approvedCosts(t) * 100) / 100)}</td>
                 </tr>
               </tbody>
             </table>
