@@ -376,3 +376,10 @@ table.fee-sum tr.total td { font-weight: 700; border-top: 1px solid var(--line);
   .k-fill { background: none; padding: 0; }
   .k-addendum { break-before: page; border-top: none; }
 }
+
+/* Staff page */
+.staff-row { display: grid; grid-template-columns: 1.2fr 1.5fr 1fr 1fr auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.staff-row.staff-head { font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); }
+.staff-row.inactive { opacity: 0.55; }
+.staff-row > button { min-width: 64px; }
+@media (max-width: 760px) { .staff-row { grid-template-columns: 1fr 1fr; } }

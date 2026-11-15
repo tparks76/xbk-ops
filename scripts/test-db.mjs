@@ -134,6 +134,18 @@ await q(`delete from rentals where id=$1`, [ren.id]);
 ok((await q(`select count(*)::int n from holds where id=$1`, [RH[0].id]))[0].n === 1, 'deleting a rental keeps its hold');
 await as('tobi@xbk.com');
 
+// staff page: only owners change staff; owners can't lock themselves out
+await as('bill@xbk.com');
+ok((await err(() => q(`select * from save_staff('bill@xbk.com','Bill Rogers','owner',true)`))) !== null, 'booker cannot change staff');
+await as('tobi@xbk.com');
+await q(`select * from save_staff('bill@xbk.com','Bill Rogers','booker',true)`);
+ok((await q(`select name from staff where email='bill@xbk.com'`))[0].name === 'Bill Rogers', 'owner renames staff');
+await q(`select * from save_staff(' New.Person@XBK.com ','New Person','marketing',true)`);
+ok((await q(`select role from staff where email='new.person@xbk.com'`))[0]?.role === 'marketing', 'owner adds staff (email lowercased)');
+ok((await err(() => q(`select * from save_staff('tobi@xbk.com','Tobi','booker',true)`))) !== null, 'owner cannot demote self');
+ok((await err(() => q(`select * from save_staff('tobi@xbk.com','Tobi','owner',false)`))) !== null, 'owner cannot deactivate self');
+ok((await err(() => q(`select * from save_staff('nope','X','mod',true)`))) !== null, 'bad email rejected');
+
 // date notes: one row per outside event, manual notes unaffected
 await db.exec(`insert into date_notes (date, body, created_by) values ('2027-08-01','Manual a','tobi@xbk.com'), ('2027-08-01','Manual b','tobi@xbk.com')`);
 await db.exec(`insert into date_notes (date, body, created_by, source, external_id) values ('2027-08-02','Band @ Arena','auto','ticketmaster','TM1') on conflict (source, external_id) do nothing`);

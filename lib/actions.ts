@@ -404,6 +404,31 @@ function cleanUrl(u: string): string | null {
   }
 }
 
+export async function saveStaff(form: FormData) {
+  const staff = await getStaff();
+  if (staff?.role !== "owner") back(form, { error: "Only an owner can change staff." });
+  const email = str(form, "email").toLowerCase();
+  const name = str(form, "name");
+  const isNew = str(form, "new") === "1";
+  const { error } = await createClient().then((s) =>
+    s.rpc("save_staff", {
+      p_email: email,
+      p_name: name,
+      p_role: str(form, "role"),
+      p_active: str(form, "active") === "1",
+    }),
+  );
+  if (error) {
+    back(form, {
+      error: /save_staff/.test(error.message)
+        ? "The Staff page isn't set up yet. Run 0010_staff_admin.sql in Supabase."
+        : cleanError(error.message),
+    });
+  }
+  revalidatePath("/", "layout");
+  back(form, { ok: isNew ? `${name} added. They can sign in with Microsoft using ${email}.` : `${name} saved.` });
+}
+
 export async function saveVenue(form: FormData) {
   const staff = await getStaff();
   if (!staff?.canBook) back(form, { error: "Only a booker or owner can change venues." });
