@@ -39,7 +39,7 @@ export async function runArtistLookups(opts: { ids?: string[]; limit?: number; r
 
   let done = 0;
   for (const a of list.slice(0, limit)) {
-    const r = await lookupArtist(a.name, { deezerId: a.deezer_id, musicbrainzId: a.musicbrainz_id, existing: a.links });
+    const r = await lookupArtist(a.name, { deezerId: a.deezer_id, musicbrainzId: a.musicbrainz_id, existing: a.links, notOnDeezer: a.not_on_deezer });
     const rep = !!opts.replace;
     await db
       .from("artists")

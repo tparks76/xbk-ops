@@ -1,32 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import ArtistPicker, { type Picked } from "@/components/ArtistPicker";
 import type { ArtistChoice } from "@/lib/artist-choices";
 import type { Hold } from "@/lib/types";
 
-const key = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
-
-// Artist, type, agent and notes fields shared by the new-hold and edit forms.
-// Typing a known artist (or another spelling of one) suggests the standard name and
-// fills in their usual agent when the agent fields are empty.
+// Artist/event, type, agent and notes fields shared by the new-hold and edit forms.
+// For shows and co-pros the artist box lists your Artists and Deezer's artists, so you can
+// pick the exact one; picking someone from Artists also fills in their usual agent.
 export default function HoldFields({ hold, artists = [] }: { hold?: Partial<Hold>; artists?: ArtistChoice[] }) {
   const [kind, setKind] = useState<string>(hold?.kind ?? "show");
-  const [match, setMatch] = useState<ArtistChoice | null>(null);
-  const [typed, setTyped] = useState(hold?.title ?? "");
+  const [title, setTitle] = useState(hold?.title ?? "");
+  const [picked, setPicked] = useState<Picked | null>(null);
   const isArtist = kind === "show" || kind === "copro";
+  const current = hold?.artist_id ? (artists.find((a) => a.id === hold.artist_id) ?? null) : null;
 
-  const find = (v: string) => {
-    const k = key(v);
-    if (!k) return null;
-    return artists.find((a) => key(a.name) === k || a.aliases.some((x) => key(x) === k)) ?? null;
-  };
-
-  const onTitle = (input: HTMLInputElement) => {
-    const a = isArtist ? find(input.value) : null;
-    setMatch(a);
-    setTyped(input.value);
-    const form = input.form;
-    if (!a || !form) return;
+  const fillAgent = (form: HTMLFormElement | null, a?: ArtistChoice) => {
+    if (!form || !a) return;
     const field = (n: string) => form.elements.namedItem(n) as HTMLInputElement | null;
     const [name, company, email] = [field("agent_name"), field("agent_company"), field("agent_email")];
     if (name && company && email && !name.value && !company.value && !email.value) {
@@ -41,26 +31,21 @@ export default function HoldFields({ hold, artists = [] }: { hold?: Partial<Hold
       <div className="row">
         <label>
           {isArtist ? "Artist" : "Event name"}
-          <input
-            name="title"
-            required
-            defaultValue={hold?.title ?? ""}
-            placeholder={isArtist ? "Start typing an artist" : "e.g. Smith Wedding"}
-            list={isArtist ? "artist-names" : undefined}
-            autoComplete="off"
-            onChange={(e) => onTitle(e.currentTarget)}
-            onBlur={(e) => onTitle(e.currentTarget)}
-          />
-          {isArtist && (
-            <span className="muted small field-hint">
-              {match
-                ? match.name === typed.trim()
-                  ? "✓ In Artists"
-                  : `✓ Saved as “${match.name}”`
-                : typed.trim()
-                  ? "New artist: will be added to Artists"
-                  : ""}
-            </span>
+          {isArtist ? (
+              <ArtistPicker
+                artists={artists}
+                defaultValue={title}
+                current={current}
+                onText={setTitle}
+                onPick={(p) => {
+                  setPicked(p);
+                  if (p?.kind === "artist") fillAgent(document.activeElement?.closest("form") ?? null, p.agent);
+                  if (p?.kind === "deezer" && p.artistId)
+                    fillAgent(document.activeElement?.closest("form") ?? null, artists.find((a) => a.id === p.artistId));
+                }}
+              />
+          ) : (
+            <input name="title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Smith Wedding" />
           )}
         </label>
         <label style={{ flex: "0 0 170px" }}>
@@ -73,13 +58,12 @@ export default function HoldFields({ hold, artists = [] }: { hold?: Partial<Hold
           </select>
         </label>
       </div>
-      {isArtist && (
-        <datalist id="artist-names">
-          {artists.map((a) => (
-            <option key={a.name} value={a.name} />
-          ))}
-        </datalist>
-      )}
+      {/* The exact artist picked from the menu (empty = match by name) */}
+      <input type="hidden" name="artist_id" value={isArtist && picked?.kind === "artist" ? picked.id : isArtist && picked?.kind === "deezer" ? (picked.artistId ?? "") : ""} />
+      <input type="hidden" name="deezer_id" value={isArtist && picked?.kind === "deezer" ? picked.id : ""} />
+      <input type="hidden" name="deezer_name" value={isArtist && picked?.kind === "deezer" ? picked.name : ""} />
+      <input type="hidden" name="deezer_image" value={isArtist && picked?.kind === "deezer" ? (picked.image ?? "") : ""} />
+      <input type="hidden" name="new_artist" value={isArtist && picked?.kind === "new" ? "1" : ""} />
       <div className="row">
         <label>
           Agent / contact

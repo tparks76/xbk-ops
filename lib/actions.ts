@@ -42,6 +42,16 @@ async function rpc(form: FormData, fn: string, args: Record<string, unknown>) {
 
 const str = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 
+// The artist picked from the hold form's menu, if any (empty = match by name).
+const pickedArtist = (form: FormData) => ({
+  p_artist: str(form, "artist_id") || null,
+  p_deezer_id: str(form, "deezer_id") || null,
+  p_deezer_name: str(form, "deezer_name") || null,
+  p_image: str(form, "deezer_image") || null,
+  p_new: str(form, "new_artist") === "1",
+});
+const hasPick = (form: FormData) => !!(str(form, "artist_id") || str(form, "deezer_id") || str(form, "new_artist"));
+
 export async function placeHolds(form: FormData) {
   after(() => runArtistLookups({ limit: 2 }).catch(() => undefined)); // photos/genres for any new artist
   const room = str(form, "room");
@@ -52,7 +62,7 @@ export async function placeHolds(form: FormData) {
   if (dates.length === 0 || !dates.every(isValidISO)) {
     back(form, { error: "Pick at least one valid date." });
   }
-  const placed = (await rpc(form, "place_holds", {
+  const placed = (await rpc(form, hasPick(form) ? "place_holds_picked" : "place_holds", {
     p_room: room,
     p_dates: dates,
     p_title: str(form, "title"),
@@ -61,6 +71,7 @@ export async function placeHolds(form: FormData) {
     p_agent_company: str(form, "agent_company"),
     p_agent_email: str(form, "agent_email"),
     p_notes: str(form, "notes"),
+    ...(hasPick(form) ? pickedArtist(form) : {}),
   })) as { id: string }[] | null;
   const sorted = [...dates].sort();
   const ids = ((placed ?? []) as { id: string }[]).map((h) => h.id).join(",");
@@ -93,7 +104,7 @@ export async function placeHoldsFromCalendar(
     return { error: "Pick at least one date on the calendar." };
   }
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("place_holds", {
+  const { data, error } = await supabase.rpc(hasPick(form) ? "place_holds_picked" : "place_holds", {
     p_room: str(form, "room"),
     p_dates: dates,
     p_title: str(form, "title"),
@@ -102,7 +113,11 @@ export async function placeHoldsFromCalendar(
     p_agent_company: str(form, "agent_company"),
     p_agent_email: str(form, "agent_email"),
     p_notes: str(form, "notes"),
+    ...(hasPick(form) ? pickedArtist(form) : {}),
   });
+  if (error && /place_holds_picked/.test(error.message)) {
+    return { error: "Picking an artist needs the 0014_pick_artist.sql update. Run it in Supabase, or type the name instead." };
+  }
   if (error) return { error: cleanError(error.message) };
   revalidatePath("/", "layout");
   return {
@@ -184,7 +199,8 @@ export async function confirmHold(form: FormData) {
 
 export async function updateHold(form: FormData) {
   after(() => runArtistLookups({ limit: 2 }).catch(() => undefined)); // photos/genres for any new artist
-  await rpc(form, "update_hold", {
+  await rpc(form, hasPick(form) ? "update_hold_picked" : "update_hold", {
+    ...(hasPick(form) ? pickedArtist(form) : {}),
     p_id: str(form, "id"),
     p_title: str(form, "title"),
     p_kind: parseKind(str(form, "kind")),
@@ -538,13 +554,18 @@ export async function lookupArtistAgain(form: FormData) {
   const supabase = await createClient();
   const deezer = deezerIdFrom(str(form, "deezer"));
   const mb = mbidFrom(str(form, "musicbrainz"));
-  if (deezer || mb) {
-    const { error } = await supabase
-      .from("artists")
-      .update({ ...(deezer ? { deezer_id: deezer } : {}), ...(mb ? { musicbrainz_id: mb } : {}) })
-      .eq("id", id);
-    if (error) back(form, { error: cleanError(error.message) });
-  }
+  const notOnDeezer = !deezer && str(form, "not_on_deezer") === "1";
+  const { error } = await supabase
+    .from("artists")
+    .update({
+      ...(deezer ? { deezer_id: deezer } : {}),
+      ...(mb ? { musicbrainz_id: mb } : {}),
+      not_on_deezer: notOnDeezer,
+      // not on Deezer: drop the Deezer match (and its photo, unless one was typed in)
+      ...(notOnDeezer ? { deezer_id: null } : {}),
+    })
+    .eq("id", id);
+  if (error) back(form, { error: /duplicate|unique/i.test(error.message) ? "Another artist already uses that Deezer page. Merge the two instead." : cleanError(error.message) });
   const r = await runArtistLookups({ ids: [id], limit: 1, replace: str(form, "replace") === "1" });
   revalidatePath("/", "layout");
   back(form, r.error ? { error: r.error } : { ok: "Looked up again." });

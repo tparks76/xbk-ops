@@ -174,6 +174,10 @@ export default async function ArtistPage({ params, searchParams }: Props) {
                   <input name="musicbrainz" placeholder="https://musicbrainz.org/artist/…" defaultValue={a.musicbrainz_id ? `https://musicbrainz.org/artist/${a.musicbrainz_id}` : ""} />
                 </label>
                 <label className="inline-check">
+                  <input type="checkbox" name="not_on_deezer" value="1" defaultChecked={!!a.not_on_deezer} /> Not on Deezer
+                  (don’t use a Deezer photo or genre for this artist)
+                </label>
+                <label className="inline-check">
                   <input type="checkbox" name="replace" value="1" /> Replace the current photo, genres and links
                 </label>
                 <button>Look up again</button>

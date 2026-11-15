@@ -114,6 +114,7 @@ export type Artist = {
   genres: string[];
   image_url: string | null;
   deezer_id: string | null;
+  not_on_deezer?: boolean;
   musicbrainz_id: string | null;
   links: Record<string, string>;
   agent_name: string | null;

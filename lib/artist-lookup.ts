@@ -324,14 +324,16 @@ async function deezerGenreLookup(deezerId: string): Promise<string[]> {
 // existing = links already saved, so paid web searches only run for what's still missing.
 export async function lookupArtist(
   name: string,
-  known: { deezerId?: string | null; musicbrainzId?: string | null; existing?: ArtistLinks } = {},
+  known: { deezerId?: string | null; musicbrainzId?: string | null; existing?: ArtistLinks; notOnDeezer?: boolean } = {},
 ): Promise<LookupResult> {
   const out: LookupResult = { image_url: null, deezer_id: null, genres: [], musicbrainz_id: null, links: {}, note: "" };
   const notes: string[] = [];
 
   try {
     let dz: DeezerArtist | null = null;
-    if (known.deezerId) {
+    if (!known.deezerId && known.notOnDeezer) {
+      // added by hand as not on Deezer: don't borrow a namesake's photo
+    } else if (known.deezerId) {
       dz = await getJson<DeezerArtist>(`https://api.deezer.com/artist/${encodeURIComponent(known.deezerId)}`);
       if (!dz?.id) dz = null;
     } else {
@@ -342,7 +344,7 @@ export async function lookupArtist(
       out.deezer_id = String(dz.id);
       out.image_url = realPicture(dz.picture_xl) ?? realPicture(dz.picture_big);
       if (!out.image_url) notes.push("Deezer has no photo");
-    } else notes.push("No photo match on Deezer");
+    } else if (!known.notOnDeezer) notes.push("No photo match on Deezer");
   } catch (e) {
     notes.push(`Photo lookup failed (${(e as Error).message})`);
   }

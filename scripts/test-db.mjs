@@ -188,6 +188,31 @@ await as('mod@xbk.com');
 ok((await err(() => q(`select delete_artist($1, false)`, [T2[0].artist_id ?? tbd]))) !== null, 'MOD cannot delete artists');
 await as('tobi@xbk.com');
 
+// picking the exact artist: two artists can share a name when they're different Deezer artists
+await as('bill@xbk.com');
+const W1 = await q(`select * from place_holds_picked('xbk', array['2028-01-05']::date[], 'Wednesday', 'show', null, null, null, null, null, '111', 'Wednesday', 'https://img/1')`);
+const W2 = await q(`select * from place_holds_picked('annex', array['2028-01-06']::date[], 'Wednesday', 'show', null, null, null, null, null, '222', 'Wednesday', 'https://img/2')`);
+ok(W1[0].artist_id && W2[0].artist_id && W1[0].artist_id !== W2[0].artist_id, 'two Deezer artists named Wednesday stay separate');
+const W3 = await q(`select * from place_holds_picked('xbk', array['2028-01-07']::date[], 'Wednesday', 'show', null, null, null, null, null, '222', 'Wednesday', null)`);
+ok(W3[0].artist_id === W2[0].artist_id, 'picking the same Deezer artist reuses it');
+const W4 = await q(`select * from place_holds_picked('xbk', array['2028-01-08']::date[], 'Wednesday', 'show', null, null, null, null, $1, null, null, null)`, [W2[0].artist_id]);
+ok(W4[0].artist_id === W2[0].artist_id, 'picking an artist from Artists uses it');
+const E1 = await q(`select * from update_hold_picked($1, 'Wednesday', 'show', null, null, null, 'moved', $2, null, null, null)`, [W1[0].id, W2[0].artist_id]);
+ok(E1.artist_id === W2[0].artist_id || E1[0]?.artist_id === W2[0].artist_id, 'editing a hold can switch it to the other Wednesday');
+await q(`select * from update_hold($1, 'Wednesday', 'show', null, null, null, 'note change')`, [W1[0].id]);
+ok((await q(`select artist_id from holds where id=$1`, [W1[0].id]))[0].artist_id === W2[0].artist_id, 'a plain edit keeps the picked artist');
+const LA = await q(`select * from place_holds('xbk', array['2028-01-09']::date[], 'Local Act', 'show')`);
+const LB = await q(`select * from place_holds_picked('xbk', array['2028-01-10']::date[], 'Local Act', 'show', null, null, null, null, null, '333', 'Local Act', null)`);
+ok(LB[0].artist_id === LA[0].artist_id && (await q(`select deezer_id from artists where id=$1`, [LA[0].artist_id]))[0].deezer_id === '333', 'picking Deezer for a name already saved (no Deezer yet) attaches it');
+const N1 = await q(`select * from place_holds_picked('xbk', array['2028-01-11']::date[], 'Basement Tapes', 'show', null, null, null, null, null, null, null, null, true)`);
+const nArt = (await q(`select * from artists where id=$1`, [N1[0].artist_id]))[0];
+ok(nArt && nArt.not_on_deezer === true && nArt.deezer_id === null, 'new artist added as not on Deezer');
+const N2 = await q(`select * from place_holds('annex', array['2028-01-12']::date[], 'basement tapes', 'show')`);
+ok(N2[0].artist_id === nArt.id, 'typing the name later finds that artist');
+await q(`select * from merge_artists($1, $2)`, [W2[0].artist_id, W1[0].artist_id]);
+ok((await q(`select count(*)::int n from holds where artist_id=$1`, [W2[0].artist_id]))[0].n >= 4, 'merge moves holds by artist');
+await as('tobi@xbk.com');
+
 // staff page: only owners change staff; owners can't lock themselves out
 await as('bill@xbk.com');
 ok((await err(() => q(`select * from save_staff('bill@xbk.com','Bill Rogers','owner',true)`))) !== null, 'booker cannot change staff');
