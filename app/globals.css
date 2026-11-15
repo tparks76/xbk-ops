@@ -393,3 +393,31 @@ table.fee-sum tr.total td { font-weight: 700; border-top: 1px solid var(--line);
 .hold.is-copro { box-shadow: inset 4px 0 0 var(--copro); }
 .badge.copro { background: var(--copro-bg); color: var(--copro); }
 .tag.kind-copro { background: var(--copro-bg); color: var(--copro); }
+
+/* Artists */
+.artist-photo { border-radius: 6px; object-fit: cover; flex: none; display: inline-block; vertical-align: middle; background: #ddd; }
+.artist-photo.blank { display: inline-flex; align-items: center; justify-content: center; background: #e8e7e1; color: var(--muted); font-weight: 700; }
+.artist-links { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.artist-links a { border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; font-size: 13px; background: #fff; color: #222; }
+.artist-links a:hover { background: #f0f0ec; text-decoration: none; }
+.artist-links.small { margin-top: 0; gap: 4px; }
+.artist-links.small a { font-size: 11px; padding: 0 7px; }
+.artist-links a.link-spotify { border-color: #1db954; color: #127a37; }
+.artist-links a.link-instagram { border-color: #d6249f; color: #a1196f; }
+.artist-links a.link-facebook { border-color: #1877f2; color: #1257b5; }
+.artist-head { display: flex; gap: 18px; align-items: center; margin-bottom: 14px; }
+.artist-cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.artist-cols .panel { margin-bottom: 14px; }
+@media (max-width: 900px) { .artist-cols { grid-template-columns: 1fr; } }
+.genre-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.genre-chips a, .genre-filter a { background: #eeeee9; border-radius: 999px; padding: 1px 9px; font-size: 12px; color: #333; }
+.genre-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.genre-filter a.on { background: var(--accent); color: #fff; }
+.stack-form { display: flex; flex-direction: column; gap: 8px; }
+.stack-form fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.stack-form label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.hold-artist { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin: 2px 0 4px; }
+.hold-head .artist-photo { margin-right: 2px; }
+.field-hint { display: block; min-height: 1.2em; margin-top: 2px; font-weight: 400; }
+table.list.artists td { vertical-align: middle; }
+tr.inactive td { opacity: 0.55; }

@@ -75,6 +75,14 @@ export default async function DayPage({ params, searchParams }: Props) {
   for (const o of (offerRows ?? []) as { id: string; hold_ids: string[] }[]) {
     for (const hid of o.hold_ids) offerFor.set(hid, o.id); // latest wins
   }
+  // Artist photo, genres and links for show holds.
+  const artistIds = [...new Set(holds.map((h) => h.artist_id).filter(Boolean))] as string[];
+  const { data: artistInfo } = artistIds.length
+    ? await supabase.from("artists").select("id,image_url,genres,links").in("id", artistIds)
+    : { data: [] };
+  const artistFor = new Map(
+    ((artistInfo ?? []) as { id: string; image_url: string | null; genres: string[]; links: Record<string, string> }[]).map((x) => [x.id, x]),
+  );
   // Rental forms that cover holds on this date.
   const { data: rentalRows } = holds.length
     ? await supabase.from("rentals").select("id,hold_ids,updated_at").overlaps("hold_ids", holds.map((h) => h.id)).order("updated_at")
@@ -170,6 +178,7 @@ export default async function DayPage({ params, searchParams }: Props) {
                   emailText={emailFor(stack.confirmed.title)}
                   offerId={offerFor.get(stack.confirmed.id)}
                   rentalId={rentalFor.get(stack.confirmed.id)}
+                  artist={stack.confirmed.artist_id ? artistFor.get(stack.confirmed.artist_id) : undefined}
                 />
               )}
 
@@ -193,6 +202,7 @@ export default async function DayPage({ params, searchParams }: Props) {
                   artistHoldCount={activeCount(h.title)}
                   offerId={offerFor.get(h.id)}
                   rentalId={rentalFor.get(h.id)}
+                  artist={h.artist_id ? artistFor.get(h.artist_id) : undefined}
                 />
               ))}
             </section>

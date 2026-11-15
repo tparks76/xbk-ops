@@ -1,3 +1,5 @@
+import ArtistLinks from "@/components/ArtistLinks";
+import ArtistPhoto from "@/components/ArtistPhoto";
 import { KIND_LABEL } from "@/lib/types";
 import Link from "next/link";
 import CopyButton from "@/components/CopyButton";
@@ -24,6 +26,7 @@ type Props = {
   artistHoldCount?: number; // this artist's upcoming active holds, all rooms
   offerId?: string; // offer that covers this hold, if any
   rentalId?: string; // rental form that covers this hold, if any
+  artist?: { id: string; image_url: string | null; genres: string[]; links: Record<string, string> };
 };
 
 function Hidden({ hold, returnTo }: { hold: Hold; returnTo: string }) {
@@ -47,6 +50,7 @@ export default function HoldCard({
   artistHoldCount = 0,
   offerId,
   rentalId,
+  artist,
 }: Props) {
   const rank = hold.rank ?? 0;
   const confirmed = hold.status === "confirmed";
@@ -65,7 +69,10 @@ export default function HoldCard({
         <span className={confirmed ? "badge confirmed" : rank === 1 ? "badge h1" : "badge"}>
           {confirmed ? "Confirmed" : `H${rank}`}
         </span>
-        <strong className="hold-title">{hold.title}</strong>
+        {artist && <ArtistPhoto name={hold.title} url={artist.image_url} size={32} />}
+        <strong className="hold-title">
+          {artist ? <Link href={`/artists/${artist.id}`}>{hold.title}</Link> : hold.title}
+        </strong>
         {hold.kind !== "show" && <span className={`badge ${hold.kind}`}>{KIND_LABEL[hold.kind]}</span>}
         {hold.status === "offer_out" && <span className="badge offer">Offer out</span>}
         {offerId && (
@@ -80,6 +87,12 @@ export default function HoldCard({
         )}
       </div>
 
+      {artist && (artist.genres.length > 0 || Object.keys(artist.links ?? {}).length > 0) && (
+        <div className="hold-artist small">
+          {artist.genres.length > 0 && <span className="muted">{artist.genres.join(", ")}</span>}
+          <ArtistLinks links={artist.links} small />
+        </div>
+      )}
       {(hold.agent_name || hold.agent_company || hold.agent_email) && (
         <div className="muted">
           {[hold.agent_name, hold.agent_company].filter(Boolean).join(", ")}

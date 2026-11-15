@@ -11,6 +11,7 @@ import { placeHoldsFromCalendar, type CalendarHoldState } from "@/lib/actions";
 import { fmtDate, monthKey, parseISO } from "@/lib/dates";
 import { holdsEmailText, nextRank, stackFor } from "@/lib/stack";
 import type { Hold, Room } from "@/lib/types";
+import type { ArtistChoice } from "@/lib/artist-choices";
 
 type Props = {
   m: string;
@@ -23,9 +24,10 @@ type Props = {
   notes?: Record<string, string[]>; // your date notes: those days show yellow
   autoNotes?: Record<string, string[]>; // outside music events: pale blue with ♪
   canBook: boolean;
+  artists?: ArtistChoice[]; // suggestions in the hold form
 };
 
-export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, allHolds, notes = {}, autoNotes = {}, canBook }: Props) {
+export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, allHolds, notes = {}, autoNotes = {}, canBook, artists = [] }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -221,7 +223,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
                 </div>
               </div>
 
-              <HoldFields />
+              <HoldFields artists={artists} />
 
               {state.error && <div className="flash error">{state.error}</div>}
               <div style={{ display: "flex", gap: 8 }}>

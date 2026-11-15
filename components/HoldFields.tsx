@@ -1,17 +1,71 @@
+"use client";
+
+import { useState } from "react";
+import type { ArtistChoice } from "@/lib/artist-choices";
 import type { Hold } from "@/lib/types";
 
+const key = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+
 // Artist, type, agent and notes fields shared by the new-hold and edit forms.
-export default function HoldFields({ hold }: { hold?: Partial<Hold> }) {
+// Typing a known artist (or another spelling of one) suggests the standard name and
+// fills in their usual agent when the agent fields are empty.
+export default function HoldFields({ hold, artists = [] }: { hold?: Partial<Hold>; artists?: ArtistChoice[] }) {
+  const [kind, setKind] = useState<string>(hold?.kind ?? "show");
+  const [match, setMatch] = useState<ArtistChoice | null>(null);
+  const [typed, setTyped] = useState(hold?.title ?? "");
+  const isArtist = kind === "show" || kind === "copro";
+
+  const find = (v: string) => {
+    const k = key(v);
+    if (!k) return null;
+    return artists.find((a) => key(a.name) === k || a.aliases.some((x) => key(x) === k)) ?? null;
+  };
+
+  const onTitle = (input: HTMLInputElement) => {
+    const a = isArtist ? find(input.value) : null;
+    setMatch(a);
+    setTyped(input.value);
+    const form = input.form;
+    if (!a || !form) return;
+    const field = (n: string) => form.elements.namedItem(n) as HTMLInputElement | null;
+    const [name, company, email] = [field("agent_name"), field("agent_company"), field("agent_email")];
+    if (name && company && email && !name.value && !company.value && !email.value) {
+      name.value = a.agent_name ?? "";
+      company.value = a.agent_company ?? "";
+      email.value = a.agent_email ?? "";
+    }
+  };
+
   return (
     <>
       <div className="row">
         <label>
-          Artist or event
-          <input name="title" required defaultValue={hold?.title ?? ""} placeholder="e.g. Wednesday" />
+          {isArtist ? "Artist" : "Event name"}
+          <input
+            name="title"
+            required
+            defaultValue={hold?.title ?? ""}
+            placeholder={isArtist ? "Start typing an artist" : "e.g. Smith Wedding"}
+            list={isArtist ? "artist-names" : undefined}
+            autoComplete="off"
+            onChange={(e) => onTitle(e.currentTarget)}
+            onBlur={(e) => onTitle(e.currentTarget)}
+          />
+          {isArtist && (
+            <span className="muted small field-hint">
+              {match
+                ? match.name === typed.trim()
+                  ? "✓ In Artists"
+                  : `✓ Saved as “${match.name}”`
+                : typed.trim()
+                  ? "New artist: will be added to Artists"
+                  : ""}
+            </span>
+          )}
         </label>
         <label style={{ flex: "0 0 170px" }}>
           Type
-          <select name="kind" defaultValue={hold?.kind ?? "show"}>
+          <select name="kind" defaultValue={hold?.kind ?? "show"} onChange={(e) => setKind(e.target.value)}>
             <option value="show">Show</option>
             <option value="rental">Private Rental</option>
             <option value="promoter">Promoter Rental</option>
@@ -19,6 +73,13 @@ export default function HoldFields({ hold }: { hold?: Partial<Hold> }) {
           </select>
         </label>
       </div>
+      {isArtist && (
+        <datalist id="artist-names">
+          {artists.map((a) => (
+            <option key={a.name} value={a.name} />
+          ))}
+        </datalist>
+      )}
       <div className="row">
         <label>
           Agent / contact

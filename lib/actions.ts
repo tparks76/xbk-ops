@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { runArtistLookups } from "@/lib/artist-data";
+import { deezerIdFrom, LINK_KINDS, mbidFrom } from "@/lib/artist-lookup";
 import { createClient } from "@/lib/supabase/server";
 import { isValidISO } from "@/lib/dates";
 import { normalizeTerms } from "@/lib/offer";
@@ -40,6 +43,7 @@ async function rpc(form: FormData, fn: string, args: Record<string, unknown>) {
 const str = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 
 export async function placeHolds(form: FormData) {
+  after(() => runArtistLookups({ limit: 3 }).catch(() => undefined)); // photos/genres for any new artist
   const room = str(form, "room");
   const dates = form
     .getAll("date")
@@ -80,6 +84,7 @@ export async function placeHoldsFromCalendar(
   prev: CalendarHoldState,
   form: FormData,
 ): Promise<CalendarHoldState> {
+  after(() => runArtistLookups({ limit: 3 }).catch(() => undefined)); // photos/genres for any new artist
   const dates = form
     .getAll("date")
     .map((d) => String(d).trim())
@@ -178,6 +183,7 @@ export async function confirmHold(form: FormData) {
 }
 
 export async function updateHold(form: FormData) {
+  after(() => runArtistLookups({ limit: 3 }).catch(() => undefined)); // photos/genres for any new artist
   await rpc(form, "update_hold", {
     p_id: str(form, "id"),
     p_title: str(form, "title"),
@@ -490,4 +496,73 @@ export async function deleteVenue(form: FormData) {
   if (error) back(form, { error: cleanError(error.message) });
   revalidatePath("/", "layout");
   back(form, { ok: "Venue removed." });
+}
+
+// ---------------------------------------------------------------------------
+// Artists
+// ---------------------------------------------------------------------------
+
+const lines = (v: string) =>
+  v
+    .split(/[\n,]/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+export async function saveArtist(form: FormData) {
+  const id = str(form, "id");
+  const links: Record<string, string> = {};
+  for (const k of LINK_KINDS) {
+    const v = str(form, `link_${k}`);
+    if (v) links[k] = /^https?:\/\//i.test(v) ? v : `https://${v}`;
+  }
+  await rpc(form, "save_artist", {
+    p_id: id,
+    p_name: str(form, "name"),
+    p_aliases: lines(str(form, "aliases")),
+    p_genres: lines(str(form, "genres")),
+    p_image_url: str(form, "image_url"),
+    p_links: links,
+    p_agent_name: str(form, "agent_name"),
+    p_agent_company: str(form, "agent_company"),
+    p_agent_email: str(form, "agent_email"),
+    p_notes: str(form, "notes"),
+  });
+  back(form, { ok: "Artist saved." });
+}
+
+// "Look up again": optional pasted Deezer / MusicBrainz links pin the right artist.
+export async function lookupArtistAgain(form: FormData) {
+  const staff = await getStaff();
+  if (!staff?.canBook) back(form, { error: "Only a booker or owner can look up artists." });
+  const id = str(form, "id");
+  const supabase = await createClient();
+  const deezer = deezerIdFrom(str(form, "deezer"));
+  const mb = mbidFrom(str(form, "musicbrainz"));
+  if (deezer || mb) {
+    const { error } = await supabase
+      .from("artists")
+      .update({ ...(deezer ? { deezer_id: deezer } : {}), ...(mb ? { musicbrainz_id: mb } : {}) })
+      .eq("id", id);
+    if (error) back(form, { error: cleanError(error.message) });
+  }
+  const r = await runArtistLookups({ ids: [id], limit: 1, replace: str(form, "replace") === "1" });
+  revalidatePath("/", "layout");
+  back(form, r.error ? { error: r.error } : { ok: "Looked up again." });
+}
+
+export async function lookupMissingArtists(form: FormData) {
+  const staff = await getStaff();
+  if (!staff?.canBook) back(form, { error: "Only a booker or owner can look up artists." });
+  const r = await runArtistLookups({ limit: 15 });
+  revalidatePath("/", "layout");
+  back(form, r.error ? { error: r.error } : { ok: r.done ? `Looked up ${r.done} artist${r.done > 1 ? "s" : ""}.` : "Every artist has been looked up." });
+}
+
+export async function mergeArtists(form: FormData) {
+  const keep = str(form, "id");
+  const mergeId = str(form, "merge_id");
+  if (!mergeId) back(form, { error: "Pick the artist to merge in." });
+  await rpc(form, "merge_artists", { p_keep: keep, p_merge: mergeId });
+  revalidatePath("/", "layout");
+  back(form, { ok: "Merged. Their holds now belong to this artist, and the other name is an alias." });
 }

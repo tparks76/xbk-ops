@@ -6,6 +6,7 @@ import { updateHold } from "@/lib/actions";
 import { ROOM_SHORT } from "@/lib/data";
 import { fmtDate, fmtDateTime } from "@/lib/dates";
 import { requireStaff } from "@/lib/session";
+import { artistChoices } from "@/lib/artist-choices";
 import { createClient } from "@/lib/supabase/server";
 import type { Hold, HoldEvent } from "@/lib/types";
 
@@ -57,7 +58,7 @@ export default async function EditHoldPage({ params, searchParams }: Props) {
       <form action={updateHold} className="form">
         <input type="hidden" name="id" value={hold.id} />
         <input type="hidden" name="returnTo" value={`/hold/${hold.id}/edit`} />
-        <HoldFields hold={hold} />
+        <HoldFields hold={hold} artists={await artistChoices()} />
         <div>
           <button className="primary">Save</button>
         </div>

@@ -142,6 +142,33 @@ ok(CP[0].kind === 'copro', 'co-pro hold placed');
 ok(PH[0].kind === 'promoter' && PH[0].rank === 2, 'promoter hold placed at H2');
 await as('tobi@xbk.com');
 
+// artists: holds link to one artist record; known names and aliases use the standard spelling
+await as('bill@xbk.com');
+const A1 = await q(`select * from place_holds('xbk', array['2027-11-05']::date[], 'Lily  DeTaeye', 'show', 'Pat Agent', 'Big Agency', 'pat@agency.com')`);
+const art = (await q(`select * from artists where key='lily detaeye'`))[0];
+ok(art && A1[0].artist_id === art.id && A1[0].title === 'Lily DeTaeye', 'new name creates an artist (spaces tidied)');
+ok(art.agent_email === 'pat@agency.com', 'artist picks up the default agent');
+const A2 = await q(`select * from place_holds('annex', array['2027-11-06']::date[], 'lily detaeye', 'show')`);
+ok(A2[0].artist_id === art.id && A2[0].title === 'Lily DeTaeye', 'same name, any case, reuses the artist and its spelling');
+const PR1 = await q(`select * from place_holds('annex', array['2027-11-07']::date[], 'Smith Wedding', 'rental')`);
+ok(PR1[0].artist_id === null && (await q(`select count(*)::int n from artists where key='smith wedding'`))[0].n === 0, 'private rentals are not artists');
+await q(`select * from save_artist($1,'Lily DeTaeye Band','{}','{folk, indie}',null,'{"spotify":"https://open.spotify.com/artist/x","instagram":" "}','Pat Agent','Big Agency','pat@agency.com',null)`, [art.id]);
+ok((await q(`select title from holds where id=$1`, [A1[0].id]))[0].title === 'Lily DeTaeye Band', 'renaming an artist renames its holds');
+ok((await q(`select aliases from artists where id=$1`, [art.id]))[0].aliases.includes('Lily DeTaeye'), 'old name kept as an alias');
+ok(JSON.stringify((await q(`select links from artists where id=$1`, [art.id]))[0].links) === '{"spotify":"https://open.spotify.com/artist/x"}', 'links saved, blanks dropped');
+const A3 = await q(`select * from place_holds('xbk', array['2027-11-08']::date[], 'LILY DETAEYE', 'show')`);
+ok(A3[0].artist_id === art.id && A3[0].title === 'Lily DeTaeye Band', 'alias finds the artist');
+const DUP = await q(`select * from place_holds('xbk', array['2027-11-09']::date[], 'Lilly DeTaeye', 'show')`);
+const dupId = DUP[0].artist_id;
+ok(dupId && dupId !== art.id, 'typo makes a separate artist');
+await q(`select * from merge_artists($1,$2)`, [art.id, dupId]);
+const Dh = (await q(`select title, artist_id from holds where id=$1`, [DUP[0].id]))[0];
+ok(Dh.artist_id === art.id && Dh.title === 'Lily DeTaeye Band', 'merge moves holds to the kept artist');
+ok((await q(`select count(*)::int n from artists where id=$1`, [dupId]))[0].n === 0, 'merged duplicate removed');
+await as('mod@xbk.com');
+ok((await err(() => q(`select * from merge_artists($1,$1)`, [art.id]))) !== null, 'MOD cannot merge artists');
+await as('tobi@xbk.com');
+
 // staff page: only owners change staff; owners can't lock themselves out
 await as('bill@xbk.com');
 ok((await err(() => q(`select * from save_staff('bill@xbk.com','Bill Rogers','owner',true)`))) !== null, 'booker cannot change staff');

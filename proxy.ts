@@ -29,7 +29,7 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const path = request.nextUrl.pathname;
   // /api/sync-events checks its own secret (it's called by Vercel Cron, not a person).
-  const isPublic = path.startsWith("/login") || path.startsWith("/auth") || path === "/api/sync-events";
+  const isPublic = path.startsWith("/login") || path.startsWith("/auth") || path === "/api/sync-events" || path === "/api/artist-lookup";
 
   if (!data?.claims && !isPublic) {
     const url = request.nextUrl.clone();

@@ -1,3 +1,4 @@
+import { artistChoices } from "@/lib/artist-choices";
 import { redirect } from "next/navigation";
 import Flash from "@/components/Flash";
 import HoldFields from "@/components/HoldFields";
@@ -36,7 +37,7 @@ export default async function NewHoldPage({ searchParams }: { searchParams: Sear
           Date
           <input type="date" name="date" required defaultValue={date} />
         </label>
-        <HoldFields />
+        <HoldFields artists={await artistChoices()} />
         <div className="muted small">New holds go in at H2 (or the next open rank). To hold several dates for one artist, select them on the calendar.</div>
         <div>
           <button className="primary">Place hold</button>

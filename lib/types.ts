@@ -27,6 +27,7 @@ export type Hold = {
   challenge_deadline: string | null;
   challenged_by: string | null;
   released_reason: string | null;
+  artist_id?: string | null;
   placed_by: string;
   created_at: string;
   updated_at: string;
@@ -101,6 +102,26 @@ export type Rental = {
   status: "draft" | "sent" | "signed" | "cancelled";
   created_by: string;
   sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Artist = {
+  id: string;
+  name: string;
+  key: string;
+  aliases: string[];
+  genres: string[];
+  image_url: string | null;
+  deezer_id: string | null;
+  musicbrainz_id: string | null;
+  links: Record<string, string>;
+  agent_name: string | null;
+  agent_company: string | null;
+  agent_email: string | null;
+  notes: string | null;
+  looked_up_at: string | null;
+  lookup_note: string | null;
   created_at: string;
   updated_at: string;
 };

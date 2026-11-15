@@ -17,6 +17,7 @@ import {
   todayISO,
 } from "@/lib/dates";
 import { requireStaff } from "@/lib/session";
+import { artistChoices } from "@/lib/artist-choices";
 import { createClient } from "@/lib/supabase/server";
 import type { DateNote, Hold } from "@/lib/types";
 
@@ -142,6 +143,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
           notes={notes}
           autoNotes={autoNotes}
           canBook={staff.canBook}
+          artists={staff.canBook ? await artistChoices() : []}
         />
       ) : (
         <table className="rooms">
