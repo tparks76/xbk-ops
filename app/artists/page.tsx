@@ -1,6 +1,5 @@
 import Link from "next/link";
-import ArtistLinks from "@/components/ArtistLinks";
-import ArtistPhoto from "@/components/ArtistPhoto";
+import ArtistTable from "@/components/ArtistTable";
 import Flash from "@/components/Flash";
 import { lookupMissingArtists, unignoreArtistName } from "@/lib/actions";
 import { requireStaff } from "@/lib/session";
@@ -94,32 +93,19 @@ export default async function ArtistsPage({ searchParams }: { searchParams: Sear
             {q || genre ? "No artists match." : "No artists yet. They’re added automatically when you place a show hold."}
           </div>
         ) : (
-          <table className="list artists">
-            <tbody>
-              {artists.map((a) => (
-                <tr key={a.id}>
-                  <td style={{ width: 48 }}>
-                    <Link href={`/artists/${a.id}`}>
-                      <ArtistPhoto name={a.name} url={a.image_url} size={40} />
-                    </Link>
-                  </td>
-                  <td>
-                    <Link href={`/artists/${a.id}`}>
-                      <strong>{a.name}</strong>
-                    </Link>
-                    {a.aliases.length > 0 && <div className="muted small">also: {a.aliases.join(", ")}</div>}
-                  </td>
-                  <td className="small">{a.genres.join(", ") || <span className="muted">—</span>}</td>
-                  <td>
-                    <ArtistLinks links={a.links} small />
-                  </td>
-                  <td className="small muted" style={{ whiteSpace: "nowrap" }}>
-                    {counts.get(a.id) ?? 0} on the calendar
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ArtistTable
+            rows={artists.map((a) => ({
+              id: a.id,
+              name: a.name,
+              aliases: a.aliases,
+              genres: a.genres,
+              image_url: a.image_url,
+              links: a.links,
+              count: counts.get(a.id) ?? 0,
+            }))}
+            canBook={staff.canBook}
+            returnTo={`/artists?${new URLSearchParams({ ...(q ? { q } : {}), ...(genre ? { genre } : {}) })}`}
+          />
         )}
       </div>
       {ignored.length > 0 && (

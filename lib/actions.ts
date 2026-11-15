@@ -591,3 +591,23 @@ export async function unignoreArtistName(form: FormData) {
   revalidatePath("/", "layout");
   back(form, { ok: `${str(form, "name")} can be an artist again.` });
 }
+
+export async function deleteArtists(form: FormData) {
+  const ids = form.getAll("id").map(String).filter(Boolean);
+  if (!ids.length) back(form, { error: "No artists selected." });
+  const ignore = str(form, "ignore") === "1";
+  const supabase = await createClient();
+  let done = 0;
+  for (const id of ids) {
+    const { error } = await supabase.rpc("delete_artist", { p_id: id, p_ignore: ignore });
+    if (error) {
+      revalidatePath("/", "layout");
+      back(form, { error: `Deleted ${done} of ${ids.length}, then: ${cleanError(error.message)}` });
+    }
+    done++;
+  }
+  revalidatePath("/", "layout");
+  back(form, {
+    ok: `Deleted ${done} artist${done > 1 ? "s" : ""}.${ignore ? " Those names won't be added as artists again." : ""}`,
+  });
+}
