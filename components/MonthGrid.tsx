@@ -1,6 +1,6 @@
 "use client";
 
-import type { HoldKind } from "@/lib/types";
+import { FORM_PENDING, KIND_LABEL, type HoldKind } from "@/lib/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
@@ -148,12 +148,12 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
             <div style={{ fontSize: 16, fontWeight: 600 }}>
               {offerAsk.kind === "rental"
                 ? "Would you like to fill out the rental form for these dates?"
-                : offerAsk.kind === "promoter"
-                  ? "The promoter rental form isn’t set up yet."
+                : FORM_PENDING.includes(offerAsk.kind)
+                  ? `The ${KIND_LABEL[offerAsk.kind]} form isn’t set up yet.`
                   : "Would you like to build an offer for these dates?"}
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              {offerAsk.kind !== "promoter" && (
+              {!FORM_PENDING.includes(offerAsk.kind) && (
                 <button
                   className="primary"
                   onClick={() =>
@@ -169,7 +169,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
                   setOfferAsk(null);
                 }}
               >
-                {offerAsk.kind === "promoter" ? "Back to calendar" : "No, back to calendar"}
+                {FORM_PENDING.includes(offerAsk.kind) ? "Back to calendar" : "No, back to calendar"}
               </button>
               <span className="spacer" />
               <CopyButton text={offerAsk.email} label="Copy holds for email" />

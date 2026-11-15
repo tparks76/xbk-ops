@@ -1,3 +1,4 @@
+import { FORM_PENDING, KIND_LABEL, parseKind } from "@/lib/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChallengesPanel from "@/components/ChallengesPanel";
@@ -64,6 +65,7 @@ export default async function DayPage({ params, searchParams }: Props) {
   const emailFor = (title: string) =>
     holdsEmailText(title, rowsFor(title).filter((r) => r.date >= (date < today ? date : today)));
   const returnTo = `/day/${date}`;
+  const pendingForm = FORM_PENDING.includes(parseKind(sp.kind ?? ""));
 
   // Offers that cover holds on this date.
   const { data: offerRows } = holds.length
@@ -102,12 +104,12 @@ export default async function DayPage({ params, searchParams }: Props) {
             <div style={{ fontSize: 16, fontWeight: 600 }}>
               {sp.kind === "rental"
                 ? "Would you like to fill out the rental form for this date?"
-                : sp.kind === "promoter"
-                  ? "The promoter rental form isn’t set up yet."
+                : pendingForm
+                  ? `The ${KIND_LABEL[parseKind(sp.kind ?? "")]} form isn’t set up yet.`
                   : "Would you like to build an offer for this date?"}
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {sp.kind !== "promoter" && (
+              {!pendingForm && (
                 <Link
                   className="button-link primary-link"
                   href={`${sp.kind === "rental" ? "/rentals/new" : "/offers/new"}?holds=${sp.ask}`}
@@ -116,7 +118,7 @@ export default async function DayPage({ params, searchParams }: Props) {
                 </Link>
               )}
               <Link className="button-link" href={`/day/${date}`}>
-                {sp.kind === "promoter" ? "OK" : "No, stay on this day"}
+                {pendingForm ? "OK" : "No, stay on this day"}
               </Link>
             </div>
           </div>

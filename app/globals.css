@@ -389,3 +389,7 @@ table.fee-sum tr.total td { font-weight: 700; border-top: 1px solid var(--line);
 .hold.is-promoter { box-shadow: inset 4px 0 0 var(--promoter); }
 .badge.promoter { background: var(--promoter-bg); color: var(--promoter); }
 .tag.kind-promoter { background: var(--promoter-bg); color: var(--promoter); }
+:root { --copro: #0f7c86; --copro-bg: #e2f3f4; }
+.hold.is-copro { box-shadow: inset 4px 0 0 var(--copro); }
+.badge.copro { background: var(--copro-bg); color: var(--copro); }
+.tag.kind-copro { background: var(--copro-bg); color: var(--copro); }

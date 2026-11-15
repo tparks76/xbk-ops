@@ -1,10 +1,13 @@
 export type HoldStatus = "hold" | "offer_out" | "confirmed" | "released";
-export type HoldKind = "show" | "rental" | "promoter";
+export type HoldKind = "show" | "rental" | "promoter" | "copro";
 
-export const KIND_LABEL: Record<HoldKind, string> = { show: "Show", rental: "Private Rental", promoter: "Promoter Rental" };
+export const KIND_LABEL: Record<HoldKind, string> = { show: "Show", rental: "Private Rental", promoter: "Promoter Rental", copro: "Co-Pro" };
 // Short tag for calendar chips.
-export const KIND_TAG: Record<HoldKind, string> = { show: "", rental: "Rental", promoter: "Promoter" };
-export const parseKind = (v: string): HoldKind => (v === "rental" || v === "promoter" ? v : "show");
+export const KIND_TAG: Record<HoldKind, string> = { show: "", rental: "Rental", promoter: "Promoter", copro: "Co-Pro" };
+export const parseKind = (v: string): HoldKind =>
+  v === "rental" || v === "promoter" || v === "copro" ? v : "show";
+// Hold types whose form hasn't been built yet.
+export const FORM_PENDING: HoldKind[] = ["promoter", "copro"];
 
 export type Room = { id: string; name: string; sort: number };
 

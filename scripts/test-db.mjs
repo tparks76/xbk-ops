@@ -137,6 +137,8 @@ await as('tobi@xbk.com');
 // promoter rentals: a third hold type
 await as('bill@xbk.com');
 const PH = await q(`select * from place_holds('annex', array['2027-10-02']::date[], 'Promoter Night', 'promoter')`);
+const CP = await q(`select * from place_holds('annex', array['2027-10-03']::date[], 'Co-Pro Night', 'copro')`);
+ok(CP[0].kind === 'copro', 'co-pro hold placed');
 ok(PH[0].kind === 'promoter' && PH[0].rank === 2, 'promoter hold placed at H2');
 await as('tobi@xbk.com');
 

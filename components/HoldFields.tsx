@@ -15,6 +15,7 @@ export default function HoldFields({ hold }: { hold?: Partial<Hold> }) {
             <option value="show">Show</option>
             <option value="rental">Private Rental</option>
             <option value="promoter">Promoter Rental</option>
+            <option value="copro">Co-Pro</option>
           </select>
         </label>
       </div>
