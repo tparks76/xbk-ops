@@ -1,4 +1,4 @@
-import { pickWikidata, wikidataLinks, pickSpotify, pickSocial, nameKey, pickDeezer, pickMusicBrainz, genresFrom, linksFrom, linkKind, deezerIdFrom, mbidFrom } from "../lib/artist-lookup.ts";
+import { genresFromAlbums, pickWikidata, wikidataLinks, pickSpotify, pickSocial, nameKey, pickDeezer, pickMusicBrainz, genresFrom, linksFrom, linkKind, deezerIdFrom, mbidFrom } from "../lib/artist-lookup.ts";
 let pass = 0, fail = 0;
 const ok = (c: boolean, m: string) => (c ? pass++ : (fail++, console.log("FAIL:", m)));
 ok(nameKey("The  Beatles") === "beatles" && nameKey("Beyoncé") === "beyonce" && nameKey("Mumford & Sons") === "mumford and sons", "nameKey");
@@ -36,4 +36,7 @@ const soc = pickSocial("Lily DeTaeye", [
   { url: "https://www.tiktok.com/@lilyd/video/1", title: "Lily DeTaeye video" },
 ]);
 ok(soc.instagram === "https://www.instagram.com/lilydetaeye/" && soc.facebook === "https://www.facebook.com/LilyDeTaeyeMusic/" && !soc.tiktok, "web search: profiles only, right artist: " + JSON.stringify(soc));
+const names = new Map([[85, "Alternative"], [152, "Rock"], [98, "Folk"]]);
+ok(genresFromAlbums([{ genre_id: 98 }, { genre_id: 98 }, { genre_id: 85 }, { genre_id: -1 }, { genre_id: 0 }], names).join() === "Folk,Alternative", "Deezer: most common album genres");
+ok(genresFromAlbums([{ genre_id: -1 }], names).length === 0, "Deezer: untagged albums give nothing");
 console.log(`${pass} passed, ${fail} failed`);

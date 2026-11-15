@@ -4,14 +4,17 @@ import type { Artist } from "@/lib/types";
 
 const KEY_LINKS = ["spotify", "instagram", "facebook"];
 const missingLinks = (a: Pick<Artist, "links">) => KEY_LINKS.some((k) => !a.links?.[k]);
+const missingGenres = (a: Pick<Artist, "genres">) => !a.genres?.length;
+const incomplete = (a: Pick<Artist, "links" | "genres">) => missingLinks(a) || missingGenres(a);
 const DAY = 864e5;
 
 // Fill in photos, genres and links for artists. By default only blanks are filled, so
 // anything typed in by hand stays. replace = true overwrites them (after a wrong match).
 //   ids: these artists
-//   missing: artists still missing a Spotify, Instagram or Facebook link (oldest lookup first)
-//   default: artists never looked up, then ones missing links that haven't been tried for 30 days
-export async function runArtistLookups(opts: { ids?: string[]; limit?: number; replace?: boolean; missing?: boolean } = {}) {
+//   missing "links": artists still missing a Spotify, Instagram or Facebook link (oldest lookup first)
+//   missing "genres": artists with no genres
+//   default: artists never looked up, then ones missing links or genres not tried for 30 days
+export async function runArtistLookups(opts: { ids?: string[]; limit?: number; replace?: boolean; missing?: "links" | "genres" } = {}) {
   const db = createAdminClient();
   const limit = opts.limit ?? 8;
   let list: Artist[] = [];
@@ -26,9 +29,11 @@ export async function runArtistLookups(opts: { ids?: string[]; limit?: number; r
     const all = (data ?? []) as Artist[];
     const now = Date.now();
     list = all.filter((a) =>
-      opts.missing
+      opts.missing === "links"
         ? missingLinks(a)
-        : !a.looked_up_at || (missingLinks(a) && now - Date.parse(a.looked_up_at) > 30 * DAY),
+        : opts.missing === "genres"
+          ? missingGenres(a)
+          : !a.looked_up_at || (incomplete(a) && now - Date.parse(a.looked_up_at) > 30 * DAY),
     );
   }
 
@@ -56,7 +61,11 @@ export async function runArtistLookups(opts: { ids?: string[]; limit?: number; r
 // For the Artists page: how many still need a first lookup, and how many are missing links.
 export async function lookupCounts() {
   const db = createAdminClient();
-  const { data } = await db.from("artists").select("links,looked_up_at").limit(3000);
-  const rows = (data ?? []) as Pick<Artist, "links" | "looked_up_at">[];
-  return { never: rows.filter((r) => !r.looked_up_at).length, missing: rows.filter(missingLinks).length };
+  const { data } = await db.from("artists").select("links,genres,looked_up_at").limit(3000);
+  const rows = (data ?? []) as Pick<Artist, "links" | "genres" | "looked_up_at">[];
+  return {
+    never: rows.filter((r) => !r.looked_up_at).length,
+    missing: rows.filter(missingLinks).length,
+    noGenres: rows.filter((r) => r.looked_up_at && missingGenres(r)).length,
+  };
 }

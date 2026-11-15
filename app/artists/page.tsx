@@ -39,7 +39,7 @@ export default async function ArtistsPage({ searchParams }: { searchParams: Sear
   }
   const { data: all } = await supabase.from("artists").select("genres");
   const genres = [...new Set(((all ?? []) as { genres: string[] }[]).flatMap((r) => r.genres))].sort();
-  const counts2 = staff.canBook && !error ? await lookupCounts() : { never: 0, missing: 0 };
+  const counts2 = staff.canBook && !error ? await lookupCounts() : { never: 0, missing: 0, noGenres: 0 };
   const { data: ignoredRows } = await supabase.from("artist_ignore").select("key,name").order("name");
   const ignored = (ignoredRows ?? []) as { key: string; name: string }[];
   const href = (g: string) => `/artists?${new URLSearchParams({ ...(q ? { q } : {}), ...(g ? { genre: g } : {}) })}`;
@@ -64,8 +64,15 @@ export default async function ArtistsPage({ searchParams }: { searchParams: Sear
         {staff.canBook && counts2.never === 0 && counts2.missing > 0 && (
           <form action={lookupMissingArtists}>
             <input type="hidden" name="returnTo" value="/artists" />
-            <input type="hidden" name="missing" value="1" />
+            <input type="hidden" name="missing" value="links" />
             <button>Find missing links ({counts2.missing})</button>
+          </form>
+        )}
+        {staff.canBook && counts2.never === 0 && counts2.noGenres > 0 && (
+          <form action={lookupMissingArtists}>
+            <input type="hidden" name="returnTo" value="/artists" />
+            <input type="hidden" name="missing" value="genres" />
+            <button>Find missing genres ({counts2.noGenres})</button>
           </form>
         )}
       </div>

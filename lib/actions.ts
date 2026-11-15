@@ -553,16 +553,19 @@ export async function lookupArtistAgain(form: FormData) {
 export async function lookupMissingArtists(form: FormData) {
   const staff = await getStaff();
   if (!staff?.canBook) back(form, { error: "Only a booker or owner can look up artists." });
-  const missing = str(form, "missing") === "1";
+  const m = str(form, "missing");
+  const missing = m === "links" || m === "genres" ? m : undefined;
   const r = await runArtistLookups({ limit: 8, missing });
   revalidatePath("/", "layout");
   if (r.error) back(form, { error: r.error });
   back(form, {
     ok: r.done
       ? `Looked up ${r.done} artist${r.done > 1 ? "s" : ""}.${r.left ? ` ${r.left} to go: click again.` : ""}`
-      : missing
+      : missing === "links"
         ? "Every artist has Spotify, Instagram and Facebook links."
-        : "Every artist has been looked up.",
+        : missing === "genres"
+          ? "Every artist has genres."
+          : "Every artist has been looked up.",
   });
 }
 

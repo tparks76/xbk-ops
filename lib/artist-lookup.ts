@@ -283,6 +283,43 @@ async function webSocialLookup(name: string): Promise<ArtistLinks | "off"> {
   return pickSocial(name, j.web?.results ?? []);
 }
 
+// ---------------------------------------------------------------------------
+// Deezer genres (free, no key): Deezer tags every album with a genre. The artist's
+// most common album genre covers most artists who release music, local acts included.
+// ---------------------------------------------------------------------------
+
+type DzAlbum = { genre_id?: number; record_type?: string };
+
+let deezerGenres: Map<number, string> | null = null;
+
+async function deezerGenreNames(): Promise<Map<number, string>> {
+  if (deezerGenres) return deezerGenres;
+  const r = await getJson<{ data?: { id: number; name: string }[] }>("https://api.deezer.com/genre");
+  deezerGenres = new Map((r.data ?? []).filter((g) => g.id > 0).map((g) => [g.id, g.name]));
+  return deezerGenres;
+}
+
+// Most common genres across the artist's releases (ignoring "All" and untagged ones), top 2.
+export function genresFromAlbums(albums: DzAlbum[], names: Map<number, string>): string[] {
+  const tally = new Map<number, number>();
+  for (const a of albums) {
+    const id = a.genre_id ?? -1;
+    if (id > 0 && names.has(id)) tally.set(id, (tally.get(id) ?? 0) + 1);
+  }
+  return [...tally.entries()]
+    .sort((x, y) => y[1] - x[1])
+    .slice(0, 2)
+    .map(([id]) => names.get(id)!);
+}
+
+async function deezerGenreLookup(deezerId: string): Promise<string[]> {
+  const [names, albums] = await Promise.all([
+    deezerGenreNames(),
+    getJson<{ data?: DzAlbum[] }>(`https://api.deezer.com/artist/${encodeURIComponent(deezerId)}/albums?limit=25`),
+  ]);
+  return genresFromAlbums(albums.data ?? [], names);
+}
+
 // Look an artist up. Pass known IDs (from a pasted link) to skip the name search.
 // existing = links already saved, so paid web searches only run for what's still missing.
 export async function lookupArtist(
@@ -340,6 +377,7 @@ export async function lookupArtist(
   }
 
   if (!out.links.spotify) {
+
     try {
       const sp = await spotifyLookup(name);
       if (sp && sp !== "off") {
@@ -352,6 +390,19 @@ export async function lookupArtist(
       notes.push(`Spotify lookup failed (${(e as Error).message})`);
     }
   }
+
+  if (!out.genres.length && out.deezer_id) {
+    try {
+      out.genres = await deezerGenreLookup(out.deezer_id);
+      if (out.genres.length) {
+        const i = notes.findIndex((n) => n.startsWith("No genre") || n.startsWith("No genres"));
+        if (i >= 0) notes.splice(i, 1);
+      }
+    } catch (e) {
+      notes.push(`Deezer genre lookup failed (${(e as Error).message})`);
+    }
+  }
+  if (!out.genres.length) notes.push("No genres found");
 
   const have = { ...known.existing, ...out.links };
   if (!have.instagram || !have.facebook) {
