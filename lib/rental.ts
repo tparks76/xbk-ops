@@ -117,6 +117,7 @@ export type Line = { kind: VendorKind | "Item"; type: string; other: string; nam
 export type Person = { name: string; email: string; cell: string; phone: string; alt: string; addr: string; csz: string };
 
 export type RentalDetails = {
+  eventName: string; // matches the hold name on the calendar
   client: string; // organization or client name
   contact: Person;
   nonProfit: boolean;
@@ -153,6 +154,7 @@ const emptyPerson = (): Person => ({ name: "", email: "", cell: "", phone: "", a
 
 export function defaultDetails(init: Partial<RentalDetails> = {}): RentalDetails {
   return {
+    eventName: "",
     client: "",
     contact: emptyPerson(),
     nonProfit: false,
@@ -309,6 +311,7 @@ export function rentalFees(roomId: string, d: RentalDetails, todayIso: string): 
 export function rentalProblems(roomId: string, d: RentalDetails): string[] {
   const room = roomInfo(roomId);
   const errs: string[] = [];
+  if (!d.eventName.trim()) errs.push("Enter the event name.");
   if (!d.client.trim()) errs.push("Enter the organization or client name.");
   if (!d.contact.name.trim()) errs.push("Enter the contact name.");
   if (!d.contact.email.trim()) errs.push("Enter the contact's email.");
@@ -363,7 +366,7 @@ export function rentalEmailText(roomId: string, d: RentalDetails, f: RentalFees,
   const lines = [
     `Hi ${first},`,
     "",
-    `Attached is the rental agreement for ${d.client.trim() || "your event"} at ${f.room.name} on ${fmtLongDate(d.date)}, ${fmtTime(d.start)} to ${fmtTime(d.end)}.`,
+    `Attached is the rental agreement for ${d.eventName.trim() || "your event"} at ${f.room.name} on ${fmtLongDate(d.date)}, ${fmtTime(d.start)} to ${fmtTime(d.end)}.`,
     "",
     `Total fees: ${money(f.subtotal)}`,
     d.taxExempt ? "Sales tax: tax exempt (please send your Iowa exemption certificate)" : `Sales tax (7%): ${money(f.tax)}`,

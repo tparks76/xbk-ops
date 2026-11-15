@@ -2,7 +2,7 @@ import { defaultDetails, rentalFees, rentalProblems, isWeekend, rentalEmailText 
 let pass = 0, fail = 0;
 const ok = (c: boolean, m: string) => (c ? pass++ : (fail++, console.log("FAIL:", m)));
 const base = defaultDetails({
-  client: "Drake Alumni", contact: { name: "Jordan Lee", email: "j@x.org", cell: "", phone: "", alt: "", addr: "", csz: "" },
+  eventName: "Spring Mixer", client: "Drake Alumni", contact: { name: "Jordan Lee", email: "j@x.org", cell: "", phone: "", alt: "", addr: "", csz: "" },
   xbkContact: { name: "Bill Rogers", email: "bill.rogers@xbklive.com" }, date: "2027-04-23", attendance: 140,
 });
 ok(isWeekend("2027-04-23") && !isWeekend("2027-04-22") && isWeekend("2027-04-25") && !isWeekend("2027-04-26"), "Fri–Sun weekend, Mon–Thu weekday");

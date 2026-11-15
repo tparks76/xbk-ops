@@ -71,7 +71,7 @@ export default async function NewRentalPage({ searchParams }: { searchParams: Se
         roomId={first.room_id}
         staff={people}
         initial={defaultDetails({
-          client: first.title,
+          eventName: first.title,
           contact: {
             name: first.agent_name ?? "",
             email: first.agent_email ?? "",

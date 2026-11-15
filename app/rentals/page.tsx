@@ -17,7 +17,7 @@ export default async function RentalsPage({ searchParams }: { searchParams: Sear
   const supabase = await createClient();
 
   let query = supabase.from("rentals").select("*").order("event_date", { ascending: true, nullsFirst: false }).limit(300);
-  // Every word must appear in the client or contact name, in any order.
+  // Every word must appear in the event or contact name, in any order.
   for (const w of q.replace(/[%_\\*,()]/g, " ").split(/\s+/).filter(Boolean).slice(0, 8)) {
     query = query.or(`title.ilike.%${w}%,contact_name.ilike.%${w}%`);
   }
@@ -31,7 +31,7 @@ export default async function RentalsPage({ searchParams }: { searchParams: Sear
       <div className="day-head">
         <h1>Rentals</h1>
         <form className="offer-search" action="/rentals">
-          <input name="q" type="search" placeholder="Search client" defaultValue={q} aria-label="Search client" />
+          <input name="q" type="search" placeholder="Search event or contact" defaultValue={q} aria-label="Search event or contact" />
           <button>Search</button>
           {q && <Link href="/rentals">Clear</Link>}
         </form>
@@ -54,6 +54,7 @@ export default async function RentalsPage({ searchParams }: { searchParams: Sear
           <table className="list">
             <thead>
               <tr>
+                <th>Event</th>
                 <th>Client</th>
                 <th>Room</th>
                 <th>Date</th>
@@ -65,12 +66,14 @@ export default async function RentalsPage({ searchParams }: { searchParams: Sear
             </thead>
             <tbody>
               {rentals.map((r) => {
-                const f = rentalFees(r.room_id, normalizeDetails(r.details), today);
+                const d = normalizeDetails(r.details);
+                const f = rentalFees(r.room_id, d, today);
                 return (
                   <tr key={r.id}>
                     <td>
                       <Link href={`/rentals/${r.id}`}>{r.title}</Link>
                     </td>
+                    <td>{d.client}</td>
                     <td>{ROOM_FULL[r.room_id]}</td>
                     <td>{r.event_date ? fmtDate(r.event_date) : "—"}</td>
                     <td>{r.contact_name ?? ""}</td>

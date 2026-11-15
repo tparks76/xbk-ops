@@ -266,7 +266,7 @@ export async function saveRental(form: FormData) {
   if (problems.length) back(form, { error: problems.join(" ") });
 
   const fields = {
-    title: details!.client.trim(),
+    title: details!.eventName.trim(),
     contact_name: details!.contact.name.trim() || null,
     contact_email: details!.contact.email.trim().toLowerCase() || null,
     event_date: details!.date || null,

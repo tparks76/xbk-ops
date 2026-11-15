@@ -113,7 +113,7 @@ export default function RentalContract({ d, f, today }: { d: RentalDetails; f: R
         a. Date of Event: <Fill v={fmtLongDate(d.date)} />
       </p>
       <p>
-        b. Type of Event/Description: <Fill v={d.eventType + (d.description.trim() ? ` – ${d.description.trim()}` : "")} />
+        b. Type of Event/Description: <Fill v={[d.eventName.trim(), d.eventType, d.description.trim()].filter(Boolean).join(" – ")} />
       </p>
       <p>
         c. Rental Type:

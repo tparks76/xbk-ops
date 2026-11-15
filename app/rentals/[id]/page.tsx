@@ -28,6 +28,7 @@ export default async function RentalPage({ params, searchParams }: Props) {
   if (!data) notFound();
   const rental = data as Rental;
   const d = normalizeDetails(rental.details);
+  if (!d.eventName) d.eventName = rental.title; // saved before the Event name field existed
   const holds = await holdsByIds(rental.hold_ids);
   const live = holds.filter((h) => h.status !== "released");
   const today = todayISO();

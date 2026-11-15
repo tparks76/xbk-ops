@@ -203,6 +203,10 @@ export default function RentalForm(p: Props) {
             </>
           )}
           <div className="form-grid">
+            <label className="span2">
+              Event name * <span className="muted small">(the hold name on the calendar)</span>
+              <input value={d.eventName} onChange={(e) => set("eventName", e.target.value)} />
+            </label>
             <label>
               Room *
               {unassigned ? (
