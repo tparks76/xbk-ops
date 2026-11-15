@@ -26,4 +26,12 @@ ok(rentalProblems("xbk", base).length === 0, "complete form has no problems: " +
 ok(rentalProblems("annex", base).some((x) => x.includes("capacity")), "Annex capacity enforced");
 ok(rentalProblems("xbk", { ...base, ent: "Other", food: "meal", vendor: [{ kind: "Tables", type: "", other: "", name: "", qty: 1, fee: null }] }).length === 4, "Other/caterer/type/fee required");
 ok(rentalEmailText("xbk", base, rentalFees("xbk", base, "2026-11-14"), "Bill Rogers").includes("Deposit due now: $1,500.00"), "email shows deposit");
+f = rentalFees("xbk", { ...base, pricing: "hourly", hourlyRate: 200, start: "18:00", end: "21:30", block: "custom" }, "2026-11-14");
+ok(f.rate === 700 && f.extra === 0, "hourly: 3.5h × $200, no over-6 charge: " + f.rate);
+f = rentalFees("xbk", { ...base, pricing: "barmin", barMinimum: 2500 }, "2026-11-14");
+ok(f.rate === 0 && f.total === 0, "bar minimum only: no rental fee");
+ok(rentalProblems("xbk", { ...base, pricing: "barmin", barMinimum: null }).some((x) => x.includes("bar minimum")), "bar minimum required");
+ok(rentalProblems("xbk", { ...base, pricing: "hourly" }).some((x) => x.includes("hourly")), "hourly rate required");
+f = rentalFees("xbk", { ...base, depBasis: "none" }, "2026-11-14");
+ok(f.deposit === 0 && f.balance === f.total, "no deposit: all in the balance");
 console.log(`${pass} passed, ${fail} failed`);

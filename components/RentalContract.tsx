@@ -118,10 +118,22 @@ export default function RentalContract({ d, f, today }: { d: RentalDetails; f: R
       <p>
         c. Rental Type:
         <br />
-        <Box on={!f.weekend} /> Weekday – Mon–Thu ({money(room.weekday)})
+        <Box on={d.pricing === "flat" && !f.weekend} /> Weekday – Mon–Thu ({money(room.weekday)})
         <br />
-        <Box on={f.weekend} /> Weekend – Fri–Sun ({money(room.weekend)})
-        {f.rate !== f.defaultRate && (
+        <Box on={d.pricing === "flat" && f.weekend} /> Weekend – Fri–Sun ({money(room.weekend)})
+        {d.pricing === "hourly" && (
+          <>
+            <br />
+            <Box on /> Hourly – <Fill v={`${money(d.hourlyRate ?? 0)}/hour × ${Math.round(f.hours * 100) / 100} hours = ${money(f.rate)}`} />
+          </>
+        )}
+        {d.pricing === "barmin" && (
+          <>
+            <br />
+            <Box on /> Bar minimum only – no rental fee; bar sales minimum of <Fill v={money(d.barMinimum ?? 0)} /> (see Section 3)
+          </>
+        )}
+        {d.pricing === "flat" && f.rate !== f.defaultRate && (
           <>
             <br />
             Rental rate charged: <Fill v={money(f.rate)} />
@@ -278,10 +290,19 @@ export default function RentalContract({ d, f, today }: { d: RentalDetails; f: R
         <br />
         b. Sales Tax (7%) <Fill v={d.taxExempt ? "Tax exempt – $0.00" : money(f.tax)} />
         <br />
-        c. <strong>Reservation Deposit</strong>. A reservation deposit is required in advance to successfully reserve the venue.
-        The reservation deposit is 50% of the <Box on={d.depBasis === "rate"} /> rental rate <Box on={d.depBasis === "total"} />{" "}
-        total fees (as checked) and has limited refundability (see “Cancellation”) <Fill v={money(f.deposit)} /> (Due upon
-        receipt of invoice, reservation will be canceled if left unpaid for three (3) days following delivery of invoice)
+        {d.depBasis === "none" && !f.within30 ? (
+          <>
+            c. <strong>Reservation Deposit</strong>. No reservation deposit is required for this event.
+          </>
+        ) : (
+          <>
+            c. <strong>Reservation Deposit</strong>. A reservation deposit is required in advance to successfully reserve the
+            venue. The reservation deposit is 50% of the <Box on={d.depBasis === "rate"} /> rental rate{" "}
+            <Box on={d.depBasis === "total"} /> total fees (as checked) and has limited refundability (see “Cancellation”){" "}
+            <Fill v={money(f.deposit)} /> (Due upon receipt of invoice, reservation will be canceled if left unpaid for three
+            (3) days following delivery of invoice)
+          </>
+        )}
         <br />
         d. Remaining Balance <Fill v={money(f.balance)} /> (Due on or before{" "}
         <Fill v={f.within30 ? "execution of this Agreement" : fmtLongDate(f.balanceDue)} /> (ten (10) days prior to Event Date)
@@ -291,6 +312,13 @@ export default function RentalContract({ d, f, today }: { d: RentalDetails; f: R
         or before the above due date, the reservation will be deemed canceled and forfeited without further notice. If the
         event date is less than 30 days away, 100% of the total fees is due at the time of executing this Agreement.
       </p>
+      {d.pricing === "barmin" && (
+        <p>
+          Bar Minimum. In place of a rental rate, Client agrees that bar sales during the event (before sales tax and
+          gratuity) will total at least <Fill v={money(d.barMinimum ?? 0)} />. If bar sales are less than this amount, Client
+          will be invoiced for the difference, plus applicable sales tax, with any Overage Fees.
+        </p>
+      )}
       <p>Overage Fees.</p>
       <ol type="A" className="k-list">
         <li>

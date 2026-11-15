@@ -357,7 +357,7 @@ export default function RentalForm(p: Props) {
               before ($150)
             </label>
           </div>
-          {d.block === "custom" && (
+          {d.block === "custom" && d.pricing === "flat" && (
             <div className="muted small">
               Custom time: {Math.round(f.hours * 10) / 10} hours
               {f.extraHours ? `, ${f.extraHours} over 6 → ${money(f.extra)}` : " (no extra charge up to 6)"}.
@@ -519,30 +519,83 @@ export default function RentalForm(p: Props) {
         <section className="panel">
           <h2>
             7. Fees and deposit{" "}
-            <span className="badge">
-              {d.date ? (f.weekend ? "Weekend rate (Fri–Sun)" : "Weekday rate (Mon–Thu)") : "Pick a date"}
-            </span>
+            {d.pricing === "flat" && (
+              <span className="badge">
+                {d.date ? (f.weekend ? "Weekend rate (Fri–Sun)" : "Weekday rate (Mon–Thu)") : "Pick a date"}
+              </span>
+            )}
           </h2>
           <div className="form-grid">
-            <label>
-              Default rental rate
-              <input value={`${money(f.defaultRate)}${info.provisional ? " (provisional)" : ""}`} disabled />
+            <label className="span2">
+              Pricing *
+              <select value={d.pricing} onChange={(e) => set("pricing", e.target.value as RentalDetails["pricing"])}>
+                <option value="flat">Flat rental rate (weekday / weekend)</option>
+                <option value="hourly">Hourly rental fee</option>
+                <option value="barmin">Bar minimum only (no rental fee)</option>
+              </select>
             </label>
-            <label>
-              Rental rate charged *
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={d.rate ?? f.startRate}
-                onChange={(e) => set("rate", e.target.value === "" ? 0 : Number(e.target.value))}
-              />
-            </label>
+            {d.pricing === "flat" && (
+              <>
+                <label>
+                  Default rental rate
+                  <input value={`${money(f.defaultRate)}${info.provisional ? " (provisional)" : ""}`} disabled />
+                </label>
+                <label>
+                  Rental rate charged *
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={d.rate ?? f.startRate}
+                    onChange={(e) => set("rate", e.target.value === "" ? 0 : Number(e.target.value))}
+                  />
+                </label>
+              </>
+            )}
+            {d.pricing === "hourly" && (
+              <>
+                <label>
+                  Hourly rate *
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={d.hourlyRate ?? ""}
+                    placeholder="$ per hour"
+                    onChange={(e) => set("hourlyRate", numOrNull(e.target.value))}
+                  />
+                </label>
+                <label>
+                  Hours (from start and end times)
+                  <input value={`${Math.round(f.hours * 100) / 100} hrs = ${money(f.rate)}`} disabled />
+                </label>
+              </>
+            )}
+            {d.pricing === "barmin" && (
+              <>
+                <label>
+                  Bar minimum *
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={d.barMinimum ?? ""}
+                    placeholder="$ in bar sales"
+                    onChange={(e) => set("barMinimum", numOrNull(e.target.value))}
+                  />
+                </label>
+                <span className="muted small" style={{ alignSelf: "end" }}>
+                  No rental fee. If bar sales (before tax and gratuity) come in under the minimum, the client pays the
+                  difference after the event.
+                </span>
+              </>
+            )}
             <label className="span2">
               Deposit
               <select value={d.depBasis} onChange={(e) => set("depBasis", e.target.value as RentalDetails["depBasis"])}>
                 <option value="rate">50% of the rental rate</option>
                 <option value="total">50% of all costs</option>
+                <option value="none">No deposit required</option>
               </select>
             </label>
             <label className="span2">
@@ -550,15 +603,28 @@ export default function RentalForm(p: Props) {
               <textarea rows={2} value={d.notes} onChange={(e) => set("notes", e.target.value)} />
             </label>
           </div>
-          <div className="muted small" style={{ marginTop: 6 }}>
-            {d.nonProfit && `Non-profit: starts at 50% (${money(f.startRate)}). `}
-            {f.rate < f.startRate && `Discount: ${money(f.startRate - f.rate)} below the starting rate. `}
-            {d.rate !== null && (
-              <button type="button" className="link" onClick={() => set("rate", null)}>
-                Reset to {money(f.startRate)}
-              </button>
-            )}
-          </div>
+          {d.pricing === "flat" && (
+            <div className="muted small" style={{ marginTop: 6 }}>
+              {d.nonProfit && `Non-profit: starts at 50% (${money(f.startRate)}). `}
+              {f.rate < f.startRate && `Discount: ${money(f.startRate - f.rate)} below the starting rate. `}
+              {d.rate !== null && (
+                <button type="button" className="link" onClick={() => set("rate", null)}>
+                  Reset to {money(f.startRate)}
+                </button>
+              )}
+            </div>
+          )}
+          {d.pricing !== "flat" && d.nonProfit && (
+            <div className="muted small" style={{ marginTop: 6 }}>
+              The non-profit 50% applies to the flat rate only. Set the {d.pricing === "hourly" ? "hourly rate" : "bar minimum"} you
+              want to charge.
+            </div>
+          )}
+          {f.within30 && d.depBasis === "none" && (
+            <div className="muted small" style={{ marginTop: 6 }}>
+              The event is less than 30 days away, so the contract still has everything due at signing.
+            </div>
+          )}
         </section>
 
         {p.canEdit && (
@@ -573,7 +639,13 @@ export default function RentalForm(p: Props) {
         <table className="list fee-sum">
           <tbody>
             <tr>
-              <td>Rental rate</td>
+              <td>
+                {d.pricing === "hourly"
+                  ? `Rental (${money(d.hourlyRate ?? 0)}/hr × ${Math.round(f.hours * 100) / 100} hrs)`
+                  : d.pricing === "barmin"
+                    ? "Rental (bar minimum only)"
+                    : "Rental rate"}
+              </td>
               <td>{money(f.rate)}</td>
             </tr>
             <tr>
@@ -612,7 +684,9 @@ export default function RentalForm(p: Props) {
               <td>
                 {f.within30
                   ? "Due at signing (event within 30 days)"
-                  : `Deposit (50% of ${d.depBasis === "rate" ? "rental rate" : "all costs"})`}
+                  : d.depBasis === "none"
+                    ? "Deposit (none required)"
+                    : `Deposit (50% of ${d.depBasis === "rate" ? "rental rate" : "all costs"})`}
               </td>
               <td>{money(f.deposit)}</td>
             </tr>
@@ -622,7 +696,12 @@ export default function RentalForm(p: Props) {
             </tr>
           </tbody>
         </table>
-        {info.provisional && <div className="warn">Ideal Dress Club rates and included items are not final yet.</div>}
+        {d.pricing === "barmin" && (
+          <div className="small" style={{ marginTop: 8 }}>
+            Bar minimum: <strong>{money(d.barMinimum ?? 0)}</strong> in bar sales. Any shortfall is billed after the event.
+          </div>
+        )}
+        {info.provisional && d.pricing === "flat" && <div className="warn">Ideal Dress Club rates and included items are not final yet.</div>}
         {problems.length > 0 ? (
           <div className="muted small" style={{ marginTop: 8 }}>
             Still needed: {problems.length} item{problems.length > 1 ? "s" : ""}.

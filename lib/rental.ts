@@ -145,8 +145,11 @@ export type RentalDetails = {
   bar: keyof typeof BARS;
   tab: number | null;
   incl: string;
-  rate: number | null; // null = the starting rate for the room, day and non-profit status
-  depBasis: "rate" | "total";
+  pricing: "flat" | "hourly" | "barmin"; // flat day rate, hourly, or bar minimum only (no rental fee)
+  rate: number | null; // flat: null = the starting rate for the room, day and non-profit status
+  hourlyRate: number | null;
+  barMinimum: number | null;
+  depBasis: "rate" | "total" | "none";
   notes: string; // staff only
 };
 
@@ -182,7 +185,10 @@ export function defaultDetails(init: Partial<RentalDetails> = {}): RentalDetails
     bar: "cash",
     tab: null,
     incl: "",
+    pricing: "flat",
     rate: null,
+    hourlyRate: null,
+    barMinimum: null,
     depBasis: "rate",
     notes: "",
     ...init,
@@ -265,11 +271,12 @@ export function rentalFees(roomId: string, d: RentalDetails, todayIso: string): 
   const weekend = isWeekend(d.date);
   const defaultRate = weekend ? room.weekend : room.weekday;
   const startRate = defaultRate * (d.nonProfit ? 0.5 : 1);
-  const rate = d.rate ?? startRate;
-
   let hours = (minutes(d.end) - minutes(d.start)) / 60;
   if (hours < 0) hours += 24;
-  const extraHours = d.block === "custom" ? Math.max(0, Math.ceil(hours - 6)) : 0;
+  const rate =
+    d.pricing === "hourly" ? round2((d.hourlyRate ?? 0) * hours) : d.pricing === "barmin" ? 0 : (d.rate ?? startRate);
+  // Hourly rentals already pay for every hour, so the over-6-hours charge only applies to flat rates.
+  const extraHours = d.pricing === "flat" && d.block === "custom" ? Math.max(0, Math.ceil(hours - 6)) : 0;
   const extra = extraHours * EXTRA_HOUR_FEE;
   const storage = d.storage ? STORAGE_FEE : 0;
   const vendorTotal = round2(d.vendor.reduce((s, l) => s + lineTotal(l), 0));
@@ -282,7 +289,7 @@ export function rentalFees(roomId: string, d: RentalDetails, todayIso: string): 
   const tax = d.taxExempt ? 0 : round2(subtotal * TAX_RATE);
   const total = round2(subtotal + tax);
   const within30 = d.date ? daysBetween(todayIso, d.date) < 30 : false;
-  const deposit = within30 ? total : round2((d.depBasis === "rate" ? rate : total) * 0.5);
+  const deposit = within30 ? total : d.depBasis === "none" ? 0 : round2((d.depBasis === "rate" ? rate : total) * 0.5);
   return {
     room,
     weekend,
@@ -333,7 +340,10 @@ export function rentalProblems(roomId: string, d: RentalDetails): string[] {
     if (!l.name.trim()) errs.push("Name each rental item.");
     if (l.fee === null) errs.push("Enter the fee for each rental item.");
   }
-  if (d.rate !== null && d.rate < 0) errs.push("The rental rate can't be negative.");
+  if (d.pricing === "flat" && d.rate !== null && d.rate < 0) errs.push("The rental rate can't be negative.");
+  if (d.pricing === "hourly" && !(d.hourlyRate && d.hourlyRate > 0)) errs.push("Enter the hourly rate.");
+  if (d.pricing === "barmin" && !(d.barMinimum && d.barMinimum > 0)) errs.push("Enter the bar minimum.");
+  if (d.pricing === "barmin" && d.bar === "none") errs.push("A bar minimum needs bar service. Pick a bar option.");
   return [...new Set(errs)];
 }
 
@@ -373,9 +383,18 @@ export function rentalEmailText(roomId: string, d: RentalDetails, f: RentalFees,
     `Total: ${money(f.total)}`,
     f.within30
       ? `Because the event is less than 30 days away, the full ${money(f.total)} is due when you sign.`
-      : `Deposit due now: ${money(f.deposit)}. Remaining balance of ${money(f.balance)} due by ${fmtLongDate(f.balanceDue)}.`,
+      : d.depBasis === "none"
+        ? `No deposit is required. The balance of ${money(f.balance)} is due by ${fmtLongDate(f.balanceDue)}.`
+        : `Deposit due now: ${money(f.deposit)}. Remaining balance of ${money(f.balance)} due by ${fmtLongDate(f.balanceDue)}.`,
+    ...(d.pricing === "barmin"
+      ? [`There is no rental fee. The room is yours with a bar minimum of ${money(d.barMinimum ?? 0)} in bar sales; if sales come in under that, the difference is billed after the event.`]
+      : d.pricing === "hourly"
+        ? [`Rental: ${money(d.hourlyRate ?? 0)}/hour for ${Math.round(f.hours * 100) / 100} hours.`]
+        : []),
     "",
-    "To reserve the date, please sign the agreement, fill in the payment section and send it back. The reservation is released if the deposit isn't paid within three days of the invoice.",
+    d.depBasis === "none" && !f.within30
+      ? "To reserve the date, please sign the agreement, fill in the payment section and send it back."
+      : "To reserve the date, please sign the agreement, fill in the payment section and send it back. The reservation is released if the deposit isn't paid within three days of the invoice.",
   ];
   if (d.nonProfit) lines.push("", "Please include proof of non-profit status with the signed agreement.");
   lines.push("", "Let me know if you have any questions.", "", "Thanks,", from, `${f.room.name} · www.xbklive.com`);
