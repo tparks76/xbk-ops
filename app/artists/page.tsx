@@ -6,6 +6,10 @@ import { lookupMissingArtists } from "@/lib/actions";
 import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { Artist } from "@/lib/types";
+import { lookupCounts } from "@/lib/artist-data";
+
+// Looking artists up can take a while (a few seconds each).
+export const maxDuration = 60;
 
 type Search = Promise<{ q?: string; genre?: string; ok?: string; error?: string }>;
 
@@ -34,10 +38,9 @@ export default async function ArtistsPage({ searchParams }: { searchParams: Sear
       .neq("status", "released");
     for (const r of (rows ?? []) as { artist_id: string }[]) counts.set(r.artist_id, (counts.get(r.artist_id) ?? 0) + 1);
   }
-  const { data: all } = await supabase.from("artists").select("genres,looked_up_at");
-  const allRows = (all ?? []) as { genres: string[]; looked_up_at: string | null }[];
-  const genres = [...new Set(allRows.flatMap((r) => r.genres))].sort();
-  const pending = allRows.filter((r) => !r.looked_up_at).length;
+  const { data: all } = await supabase.from("artists").select("genres");
+  const genres = [...new Set(((all ?? []) as { genres: string[] }[]).flatMap((r) => r.genres))].sort();
+  const counts2 = staff.canBook && !error ? await lookupCounts() : { never: 0, missing: 0 };
   const href = (g: string) => `/artists?${new URLSearchParams({ ...(q ? { q } : {}), ...(g ? { genre: g } : {}) })}`;
 
   return (
@@ -51,16 +54,24 @@ export default async function ArtistsPage({ searchParams }: { searchParams: Sear
           {(q || genre) && <Link href="/artists">Clear</Link>}
         </form>
         <span className="spacer" />
-        {staff.canBook && pending > 0 && (
+        {staff.canBook && counts2.never > 0 && (
           <form action={lookupMissingArtists}>
             <input type="hidden" name="returnTo" value="/artists" />
-            <button>Look up photos for {pending} new artist{pending > 1 ? "s" : ""}</button>
+            <button>Look up {counts2.never} new artist{counts2.never > 1 ? "s" : ""}</button>
+          </form>
+        )}
+        {staff.canBook && counts2.never === 0 && counts2.missing > 0 && (
+          <form action={lookupMissingArtists}>
+            <input type="hidden" name="returnTo" value="/artists" />
+            <input type="hidden" name="missing" value="1" />
+            <button>Find missing links ({counts2.missing})</button>
           </form>
         )}
       </div>
       <p className="muted" style={{ marginTop: -6 }}>
-        Every show and co-pro hold is linked to an artist here, so names are spelled the same everywhere. Photos come from
-        Deezer and genres and links from MusicBrainz; new artists are looked up automatically.
+        Every show and co-pro hold is linked to an artist here, so names are spelled the same everywhere. Photos, genres and
+        Spotify / Instagram / Facebook links are found automatically for new artists, and artists still missing links are
+        tried again each month.
       </p>
       <Flash ok={sp.ok} error={sp.error ?? (error ? "Artists aren't set up yet. Run 0012_artists.sql in Supabase." : undefined)} />
       {genres.length > 0 && (

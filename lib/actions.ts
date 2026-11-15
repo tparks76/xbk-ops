@@ -43,7 +43,7 @@ async function rpc(form: FormData, fn: string, args: Record<string, unknown>) {
 const str = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 
 export async function placeHolds(form: FormData) {
-  after(() => runArtistLookups({ limit: 3 }).catch(() => undefined)); // photos/genres for any new artist
+  after(() => runArtistLookups({ limit: 2 }).catch(() => undefined)); // photos/genres for any new artist
   const room = str(form, "room");
   const dates = form
     .getAll("date")
@@ -84,7 +84,7 @@ export async function placeHoldsFromCalendar(
   prev: CalendarHoldState,
   form: FormData,
 ): Promise<CalendarHoldState> {
-  after(() => runArtistLookups({ limit: 3 }).catch(() => undefined)); // photos/genres for any new artist
+  after(() => runArtistLookups({ limit: 2 }).catch(() => undefined)); // photos/genres for any new artist
   const dates = form
     .getAll("date")
     .map((d) => String(d).trim())
@@ -183,7 +183,7 @@ export async function confirmHold(form: FormData) {
 }
 
 export async function updateHold(form: FormData) {
-  after(() => runArtistLookups({ limit: 3 }).catch(() => undefined)); // photos/genres for any new artist
+  after(() => runArtistLookups({ limit: 2 }).catch(() => undefined)); // photos/genres for any new artist
   await rpc(form, "update_hold", {
     p_id: str(form, "id"),
     p_title: str(form, "title"),
@@ -553,9 +553,17 @@ export async function lookupArtistAgain(form: FormData) {
 export async function lookupMissingArtists(form: FormData) {
   const staff = await getStaff();
   if (!staff?.canBook) back(form, { error: "Only a booker or owner can look up artists." });
-  const r = await runArtistLookups({ limit: 15 });
+  const missing = str(form, "missing") === "1";
+  const r = await runArtistLookups({ limit: 8, missing });
   revalidatePath("/", "layout");
-  back(form, r.error ? { error: r.error } : { ok: r.done ? `Looked up ${r.done} artist${r.done > 1 ? "s" : ""}.` : "Every artist has been looked up." });
+  if (r.error) back(form, { error: r.error });
+  back(form, {
+    ok: r.done
+      ? `Looked up ${r.done} artist${r.done > 1 ? "s" : ""}.${r.left ? ` ${r.left} to go: click again.` : ""}`
+      : missing
+        ? "Every artist has Spotify, Instagram and Facebook links."
+        : "Every artist has been looked up.",
+  });
 }
 
 export async function mergeArtists(form: FormData) {

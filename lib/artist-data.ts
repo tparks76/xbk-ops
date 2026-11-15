@@ -2,18 +2,39 @@ import { lookupArtist } from "@/lib/artist-lookup";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Artist } from "@/lib/types";
 
+const KEY_LINKS = ["spotify", "instagram", "facebook"];
+const missingLinks = (a: Pick<Artist, "links">) => KEY_LINKS.some((k) => !a.links?.[k]);
+const DAY = 864e5;
+
 // Fill in photos, genres and links for artists. By default only blanks are filled, so
 // anything typed in by hand stays. replace = true overwrites them (after a wrong match).
-export async function runArtistLookups(opts: { ids?: string[]; limit?: number; replace?: boolean } = {}) {
+//   ids: these artists
+//   missing: artists still missing a Spotify, Instagram or Facebook link (oldest lookup first)
+//   default: artists never looked up, then ones missing links that haven't been tried for 30 days
+export async function runArtistLookups(opts: { ids?: string[]; limit?: number; replace?: boolean; missing?: boolean } = {}) {
   const db = createAdminClient();
-  let query = db.from("artists").select("*");
-  query = opts.ids?.length ? query.in("id", opts.ids) : query.is("looked_up_at", null).order("created_at");
-  const { data, error } = await query.limit(opts.limit ?? 10);
-  if (error) return { done: 0, error: error.message };
+  const limit = opts.limit ?? 8;
+  let list: Artist[] = [];
+
+  if (opts.ids?.length) {
+    const { data, error } = await db.from("artists").select("*").in("id", opts.ids);
+    if (error) return { done: 0, error: error.message };
+    list = (data ?? []) as Artist[];
+  } else {
+    const { data, error } = await db.from("artists").select("*").order("looked_up_at", { ascending: true, nullsFirst: true }).limit(3000);
+    if (error) return { done: 0, error: error.message };
+    const all = (data ?? []) as Artist[];
+    const now = Date.now();
+    list = all.filter((a) =>
+      opts.missing
+        ? missingLinks(a)
+        : !a.looked_up_at || (missingLinks(a) && now - Date.parse(a.looked_up_at) > 30 * DAY),
+    );
+  }
 
   let done = 0;
-  for (const a of (data ?? []) as Artist[]) {
-    const r = await lookupArtist(a.name, { deezerId: a.deezer_id, musicbrainzId: a.musicbrainz_id });
+  for (const a of list.slice(0, limit)) {
+    const r = await lookupArtist(a.name, { deezerId: a.deezer_id, musicbrainzId: a.musicbrainz_id, existing: a.links });
     const rep = !!opts.replace;
     await db
       .from("artists")
@@ -29,5 +50,13 @@ export async function runArtistLookups(opts: { ids?: string[]; limit?: number; r
       .eq("id", a.id);
     done++;
   }
-  return { done };
+  return { done, left: Math.max(0, list.length - done) };
+}
+
+// For the Artists page: how many still need a first lookup, and how many are missing links.
+export async function lookupCounts() {
+  const db = createAdminClient();
+  const { data } = await db.from("artists").select("links,looked_up_at").limit(3000);
+  const rows = (data ?? []) as Pick<Artist, "links" | "looked_up_at">[];
+  return { never: rows.filter((r) => !r.looked_up_at).length, missing: rows.filter(missingLinks).length };
 }

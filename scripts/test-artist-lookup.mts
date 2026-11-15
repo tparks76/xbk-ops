@@ -1,4 +1,4 @@
-import { nameKey, pickDeezer, pickMusicBrainz, genresFrom, linksFrom, linkKind, deezerIdFrom, mbidFrom } from "../lib/artist-lookup.ts";
+import { pickWikidata, wikidataLinks, pickSpotify, pickSocial, nameKey, pickDeezer, pickMusicBrainz, genresFrom, linksFrom, linkKind, deezerIdFrom, mbidFrom } from "../lib/artist-lookup.ts";
 let pass = 0, fail = 0;
 const ok = (c: boolean, m: string) => (c ? pass++ : (fail++, console.log("FAIL:", m)));
 ok(nameKey("The  Beatles") === "beatles" && nameKey("Beyoncé") === "beyonce" && nameKey("Mumford & Sons") === "mumford and sons", "nameKey");
@@ -17,4 +17,23 @@ const l = linksFrom({ relations: [
 ok(l.spotify === "https://open.spotify.com/artist/abc" && l.instagram?.includes("instagram") && l.facebook?.includes("facebook") && l.website === "https://lilydetaeye.com" && !!l.youtube, "links sorted by kind: " + JSON.stringify(l));
 ok(linkKind("https://m.facebook.com/x") === "facebook" && linkKind("https://artist.bandcamp.com") === "bandcamp" && linkKind("nope") === null, "linkKind");
 ok(deezerIdFrom("https://www.deezer.com/us/artist/123456") === "123456" && mbidFrom("https://musicbrainz.org/artist/5b11f4ce-a62d-471e-81fc-a69a8278c7da") === "5b11f4ce-a62d-471e-81fc-a69a8278c7da", "IDs from links");
+const wd = [
+  { id: "Q1", labels: { en: { value: "Wednesday" } }, claims: {} },
+  { id: "Q2", labels: { en: { value: "Wednesday" } }, claims: { P1902: [{ mainsnak: { datavalue: { value: "sp1" } } }], P2003: [{ mainsnak: { datavalue: { value: "wednesdayband" } } }], P2013: [{ mainsnak: { datavalue: { value: "wednesdaymusic" } } }] } },
+];
+const w = pickWikidata("wednesday", wd);
+ok(w?.id === "Q2", "Wikidata: same name and a music artist");
+const wl = wikidataLinks(w!);
+ok(wl.spotify === "https://open.spotify.com/artist/sp1" && wl.instagram === "https://www.instagram.com/wednesdayband/" && wl.facebook === "https://www.facebook.com/wednesdaymusic", "Wikidata links");
+ok(pickWikidata("wednesday", [{ id: "Q9", labels: {}, claims: { P434: [{ mainsnak: { datavalue: { value: "mb-1" } } }] } }], "mb-1")?.id === "Q9", "Wikidata by MusicBrainz ID");
+const sp = pickSpotify("Lily DeTaeye", [{ name: "Lily" }, { name: "Lily DeTaeye", external_urls: { spotify: "https://open.spotify.com/artist/a" } }]);
+ok(sp?.artist.external_urls?.spotify?.endsWith("/a") === true && sp.shared === false, "Spotify exact name");
+const soc = pickSocial("Lily DeTaeye", [
+  { url: "https://www.instagram.com/p/abc123/", title: "Lily DeTaeye on Instagram" },
+  { url: "https://www.instagram.com/lilydetaeye/", title: "Lily DeTaeye (@lilydetaeye) • Instagram photos" },
+  { url: "https://www.facebook.com/someoneelse", title: "Some Other Band" },
+  { url: "https://www.facebook.com/LilyDeTaeyeMusic/", title: "Lily DeTaeye Music | Des Moines IA" },
+  { url: "https://www.tiktok.com/@lilyd/video/1", title: "Lily DeTaeye video" },
+]);
+ok(soc.instagram === "https://www.instagram.com/lilydetaeye/" && soc.facebook === "https://www.facebook.com/LilyDeTaeyeMusic/" && !soc.tiktok, "web search: profiles only, right artist: " + JSON.stringify(soc));
 console.log(`${pass} passed, ${fail} failed`);

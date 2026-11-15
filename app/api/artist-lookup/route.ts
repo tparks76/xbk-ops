@@ -9,5 +9,5 @@ export async function GET(request: NextRequest) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Not allowed" }, { status: 401 });
   }
-  return NextResponse.json(await runArtistLookups({ limit: 15 }));
+  return NextResponse.json(await runArtistLookups({ limit: 8 }));
 }

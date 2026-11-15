@@ -11,6 +11,9 @@ import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { KIND_LABEL, type Artist, type Hold } from "@/lib/types";
 
+// Looking an artist up can take several seconds.
+export const maxDuration = 60;
+
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> };
 
 const STATUS: Record<string, string> = { hold: "Hold", offer_out: "Offer out", confirmed: "Confirmed", released: "Released" };
