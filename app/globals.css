@@ -421,3 +421,5 @@ table.fee-sum tr.total td { font-weight: 700; border-top: 1px solid var(--line);
 .field-hint { display: block; min-height: 1.2em; margin-top: 2px; font-weight: 400; }
 table.list.artists td { vertical-align: middle; }
 tr.inactive td { opacity: 0.55; }
+.ignored-name { background: #eeeee9; border-radius: 999px; padding: 1px 4px 1px 10px; font-size: 12px; gap: 6px; }
+.ignored-name button { font-size: 11px; padding: 0 6px; }

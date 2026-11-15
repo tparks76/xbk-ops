@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import ArtistLinks from "@/components/ArtistLinks";
 import ArtistPhoto from "@/components/ArtistPhoto";
 import Flash from "@/components/Flash";
-import { lookupArtistAgain, mergeArtists, saveArtist } from "@/lib/actions";
+import { deleteArtist, lookupArtistAgain, mergeArtists, saveArtist } from "@/lib/actions";
 import { LINK_KINDS, LINK_LABEL } from "@/lib/artist-lookup";
 import { fmtDate, fmtDateTime } from "@/lib/dates";
 import { ROOM_FULL } from "@/lib/offer-data";
@@ -178,6 +178,32 @@ export default async function ArtistPage({ params, searchParams }: Props) {
                 </label>
                 <button>Look up again</button>
               </form>
+            </section>
+          )}
+
+          {can && (
+            <section className="panel">
+              <h2>Delete artist</h2>
+              <div className="muted small">
+                {holds.length
+                  ? `${holds.length} hold${holds.length > 1 ? "s" : ""} for ${a.name} stay on the calendar under the same name; they just won’t be linked to an artist. If this is a duplicate, merge it instead so its holds move over.`
+                  : "This artist has no holds."}
+              </div>
+              <details className="delete-offer" style={{ marginTop: 8 }}>
+                <summary>Delete {a.name}…</summary>
+                <form action={deleteArtist} className="stack-form" style={{ marginTop: 8 }}>
+                  <input type="hidden" name="id" value={a.id} />
+                  <input type="hidden" name="name" value={a.name} />
+                  <input type="hidden" name="returnTo" value={here} />
+                  <label className="inline-check">
+                    <input type="checkbox" name="ignore" value="1" /> Don’t add “{a.name}” as an artist again (for names like
+                    “TBD” or “Private event” that aren’t artists)
+                  </label>
+                  <div>
+                    <button className="danger">Yes, delete {a.name}</button>
+                  </div>
+                </form>
+              </details>
             </section>
           )}
 

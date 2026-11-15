@@ -169,6 +169,25 @@ await as('mod@xbk.com');
 ok((await err(() => q(`select * from merge_artists($1,$1)`, [art.id]))) !== null, 'MOD cannot merge artists');
 await as('tobi@xbk.com');
 
+// deleting artists: holds stay; ignored names don't come back
+await as('bill@xbk.com');
+const T1 = await q(`select * from place_holds('xbk', array['2027-12-01']::date[], 'TBD', 'show')`);
+const tbd = T1[0].artist_id;
+ok(!!tbd, 'TBD became an artist');
+await q(`select delete_artist($1, true)`, [tbd]);
+ok((await q(`select artist_id, title from holds where id=$1`, [T1[0].id]))[0].title === 'TBD', 'hold kept after artist deleted');
+const T2 = await q(`select * from place_holds('annex', array['2027-12-02']::date[], 'tbd', 'show')`);
+ok(T2[0].artist_id === null && (await q(`select count(*)::int n from artists where key='tbd'`))[0].n === 0, 'ignored name not added back');
+await q(`select unignore_artist_name('tbd')`);
+ok((await q(`select count(*)::int n from holds where artist_id is not null and lower(title)='tbd'`))[0].n === 2, 'un-ignoring relinks its holds');
+const X1 = await q(`select * from place_holds('xbk', array['2027-12-03']::date[], 'One Off Band', 'show')`);
+await q(`select delete_artist($1, false)`, [X1[0].artist_id]);
+await q(`update holds set notes='x' where id=$1`, [X1[0].id]);
+ok((await q(`select count(*)::int n from artists where key='one off band'`))[0].n === 0, 'deleted (not ignored) artist stays deleted until the name is typed again');
+await as('mod@xbk.com');
+ok((await err(() => q(`select delete_artist($1, false)`, [T2[0].artist_id ?? tbd]))) !== null, 'MOD cannot delete artists');
+await as('tobi@xbk.com');
+
 // staff page: only owners change staff; owners can't lock themselves out
 await as('bill@xbk.com');
 ok((await err(() => q(`select * from save_staff('bill@xbk.com','Bill Rogers','owner',true)`))) !== null, 'booker cannot change staff');

@@ -574,3 +574,20 @@ export async function mergeArtists(form: FormData) {
   revalidatePath("/", "layout");
   back(form, { ok: "Merged. Their holds now belong to this artist, and the other name is an alias." });
 }
+
+export async function deleteArtist(form: FormData) {
+  const ignore = str(form, "ignore") === "1";
+  await rpc(form, "delete_artist", { p_id: str(form, "id"), p_ignore: ignore });
+  revalidatePath("/", "layout");
+  redirect(
+    `/artists?ok=${encodeURIComponent(
+      ignore ? `${str(form, "name")} deleted. That name won't be added as an artist again.` : `${str(form, "name")} deleted.`,
+    )}`,
+  );
+}
+
+export async function unignoreArtistName(form: FormData) {
+  await rpc(form, "unignore_artist_name", { p_key: str(form, "key") });
+  revalidatePath("/", "layout");
+  back(form, { ok: `${str(form, "name")} can be an artist again.` });
+}

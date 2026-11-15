@@ -2,7 +2,7 @@ import Link from "next/link";
 import ArtistLinks from "@/components/ArtistLinks";
 import ArtistPhoto from "@/components/ArtistPhoto";
 import Flash from "@/components/Flash";
-import { lookupMissingArtists } from "@/lib/actions";
+import { lookupMissingArtists, unignoreArtistName } from "@/lib/actions";
 import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { Artist } from "@/lib/types";
@@ -41,6 +41,8 @@ export default async function ArtistsPage({ searchParams }: { searchParams: Sear
   const { data: all } = await supabase.from("artists").select("genres");
   const genres = [...new Set(((all ?? []) as { genres: string[] }[]).flatMap((r) => r.genres))].sort();
   const counts2 = staff.canBook && !error ? await lookupCounts() : { never: 0, missing: 0 };
+  const { data: ignoredRows } = await supabase.from("artist_ignore").select("key,name").order("name");
+  const ignored = (ignoredRows ?? []) as { key: string; name: string }[];
   const href = (g: string) => `/artists?${new URLSearchParams({ ...(q ? { q } : {}), ...(g ? { genre: g } : {}) })}`;
 
   return (
@@ -120,6 +122,29 @@ export default async function ArtistsPage({ searchParams }: { searchParams: Sear
           </table>
         )}
       </div>
+      {ignored.length > 0 && (
+        <div className="panel">
+          <h2>Not artists</h2>
+          <div className="muted small" style={{ marginBottom: 6 }}>
+            These names were deleted and won’t be added as artists when typed on a hold.
+          </div>
+          <div className="genre-filter">
+            {ignored.map((x) => (
+              <form key={x.key} action={unignoreArtistName} className="inline-form ignored-name">
+                <input type="hidden" name="key" value={x.key} />
+                <input type="hidden" name="name" value={x.name} />
+                <input type="hidden" name="returnTo" value="/artists" />
+                <span>{x.name}</span>
+                {staff.canBook && (
+                  <button className="small" title="Allow this name as an artist again">
+                    Allow again
+                  </button>
+                )}
+              </form>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }
