@@ -26,9 +26,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/rentals">Rentals</Link>
               <Link href="/artists">Artists</Link>
               <Link href="/action-list">Action list</Link>
-              <Link href="/venues">Venues</Link>
-              <Link href="/staff">Staff</Link>
               {staff.canBook && <Link href="/new">+ New hold</Link>}
+              <Link href="/settings" className="nav-settings">Settings</Link>
             </nav>
             <div className="who">
               {staff.name} · {ROLE_LABELS[staff.role] ?? staff.role}

@@ -499,7 +499,7 @@ export async function saveVenue(form: FormData) {
         : cleanError(error.message),
     });
   }
-  revalidatePath("/venues");
+  revalidatePath("/settings/venues");
   back(form, { ok: id ? `${name} saved.` : `${name} added. Click Test to check it.` });
 }
 

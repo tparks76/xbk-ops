@@ -442,3 +442,10 @@ table.list.artists tr.picked td { background: #fff8e1; }
 .picked-artist img, .picked-artist .dot { width: 26px; height: 26px; }
 .picker-row .dot.plus { display: inline-flex; align-items: center; justify-content: center; font-size: 20px; color: var(--muted); }
 .picker-new { border-top: 1px solid var(--line); border-radius: 0 0 6px 6px; margin-top: 4px; }
+
+/* Settings */
+.settings-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 0 0 14px; }
+.settings-tabs::before { content: "Settings"; font-weight: 700; color: var(--muted); font-size: 13px; padding: 8px 12px 8px 0; margin-right: 4px; }
+.settings-tabs a { padding: 8px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; color: #333; font-size: 14px; }
+.settings-tabs a.on { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
+.settings-tabs a:hover { text-decoration: none; background: #f2f2ee; }

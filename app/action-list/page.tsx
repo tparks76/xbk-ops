@@ -54,7 +54,7 @@ export default async function ActionListPage({
           <div>
             <h2>♪ Music in the metro</h2>
             <div className="muted small">
-              Shows at the venues on your <Link href="/venues">Venues to watch</Link> list are added to the calendar as
+              Shows at the venues on your <Link href="/settings/venues">Venues to watch</Link> list are added to the calendar as
               blue notes every morning. Use Sync now to update right away.
             </div>
           </div>
