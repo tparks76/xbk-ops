@@ -5,6 +5,24 @@
 -- Two artists may now share a name, as long as they are different Deezer artists.
 alter table public.artists drop constraint if exists artists_key_key;
 create index if not exists artists_key on public.artists (key);
+-- Before that: the automatic lookup sometimes matched two artists to the same Deezer artist.
+-- Keep the match on the artist with the most holds (then the oldest); the others lose it and
+-- get a note so they can be checked (merge them if they're really the same artist).
+with ranked as (
+  select a.id, a.deezer_id,
+         first_value(a.name) over w as keeper,
+         row_number() over w as n
+    from public.artists a
+    left join lateral (select count(*) c from public.holds h where h.artist_id = a.id) hc on true
+   where a.deezer_id is not null
+  window w as (partition by a.deezer_id order by hc.c desc, a.created_at)
+)
+update public.artists a
+   set deezer_id = null,
+       lookup_note = 'Had the same Deezer match as ' || r.keeper || ': check the photo, or merge if it''s the same artist'
+  from ranked r
+ where a.id = r.id and r.n > 1;
+
 create unique index if not exists artists_deezer_id on public.artists (deezer_id) where deezer_id is not null;
 -- Artists added by hand as "not on Deezer": the automatic lookup won't take a Deezer photo for them.
 alter table public.artists add column if not exists not_on_deezer boolean not null default false;
