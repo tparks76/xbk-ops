@@ -1,5 +1,6 @@
 "use client";
 
+import { KIND_TAG } from "@/lib/types";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { Stack } from "@/lib/stack";
@@ -34,7 +35,7 @@ export default function StackChip({
         title={`Confirmed: ${h.title}`}
       >
         {label}✓ {h.title}
-        {h.kind === "rental" && <span className="tag">Rental</span>}
+        {h.kind !== "show" && <span className={`tag kind-${h.kind}`}>{KIND_TAG[h.kind]}</span>}
       </Link>
     );
   }
@@ -56,7 +57,7 @@ export default function StackChip({
           {h.challenge_deadline && <span aria-label="Challenge running">⏱ </span>}
           H{h.rank} {h.title}
           {h.status === "offer_out" && <span className="tag">Offer</span>}
-          {h.kind === "rental" && <span className="tag">Rental</span>}
+          {h.kind !== "show" && <span className={`tag kind-${h.kind}`}>{KIND_TAG[h.kind]}</span>}
         </Link>
       ))}
     </>

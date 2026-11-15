@@ -383,3 +383,9 @@ table.fee-sum tr.total td { font-weight: 700; border-top: 1px solid var(--line);
 .staff-row.inactive { opacity: 0.55; }
 .staff-row > button { min-width: 64px; }
 @media (max-width: 760px) { .staff-row { grid-template-columns: 1fr 1fr; } }
+
+/* Promoter rentals */
+:root { --promoter: #b5590b; --promoter-bg: #fdf0e3; }
+.hold.is-promoter { box-shadow: inset 4px 0 0 var(--promoter); }
+.badge.promoter { background: var(--promoter-bg); color: var(--promoter); }
+.tag.kind-promoter { background: var(--promoter-bg); color: var(--promoter); }

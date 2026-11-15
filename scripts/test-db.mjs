@@ -134,6 +134,12 @@ await q(`delete from rentals where id=$1`, [ren.id]);
 ok((await q(`select count(*)::int n from holds where id=$1`, [RH[0].id]))[0].n === 1, 'deleting a rental keeps its hold');
 await as('tobi@xbk.com');
 
+// promoter rentals: a third hold type
+await as('bill@xbk.com');
+const PH = await q(`select * from place_holds('annex', array['2027-10-02']::date[], 'Promoter Night', 'promoter')`);
+ok(PH[0].kind === 'promoter' && PH[0].rank === 2, 'promoter hold placed at H2');
+await as('tobi@xbk.com');
+
 // staff page: only owners change staff; owners can't lock themselves out
 await as('bill@xbk.com');
 ok((await err(() => q(`select * from save_staff('bill@xbk.com','Bill Rogers','owner',true)`))) !== null, 'booker cannot change staff');

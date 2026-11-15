@@ -9,11 +9,12 @@ export default function HoldFields({ hold }: { hold?: Partial<Hold> }) {
           Artist or event
           <input name="title" required defaultValue={hold?.title ?? ""} placeholder="e.g. Wednesday" />
         </label>
-        <label style={{ flex: "0 0 140px" }}>
+        <label style={{ flex: "0 0 170px" }}>
           Type
           <select name="kind" defaultValue={hold?.kind ?? "show"}>
             <option value="show">Show</option>
-            <option value="rental">Rental</option>
+            <option value="rental">Private Rental</option>
+            <option value="promoter">Promoter Rental</option>
           </select>
         </label>
       </div>

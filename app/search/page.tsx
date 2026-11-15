@@ -1,3 +1,4 @@
+import { KIND_LABEL } from "@/lib/types";
 import Link from "next/link";
 import { fmtDate, todayISO } from "@/lib/dates";
 import { STATUS_LABEL } from "@/lib/offer";
@@ -70,7 +71,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
             <td style={{ color: ROOM_COLOR[h.room_id], fontWeight: 600 }}>{ROOM_FULL[h.room_id]}</td>
             <td>
               {h.title}
-              {h.kind === "rental" && <span className="badge rental" style={{ marginLeft: 6 }}>Rental</span>}
+              {h.kind !== "show" && (
+                <span className={`badge ${h.kind}`} style={{ marginLeft: 6 }}>
+                  {KIND_LABEL[h.kind]}
+                </span>
+              )}
             </td>
             <td>{status(h)}</td>
             <td>{[h.agent_name, h.agent_company].filter(Boolean).join(", ")}</td>

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isValidISO } from "@/lib/dates";
 import { normalizeTerms } from "@/lib/offer";
 import { normalizeDetails, rentalProblems } from "@/lib/rental";
+import { parseKind, type HoldKind } from "@/lib/types";
 import { getStaff } from "@/lib/session";
 
 // Every action posts back to the page it came from ("returnTo"),
@@ -51,7 +52,7 @@ export async function placeHolds(form: FormData) {
     p_room: room,
     p_dates: dates,
     p_title: str(form, "title"),
-    p_kind: str(form, "kind") === "rental" ? "rental" : "show",
+    p_kind: parseKind(str(form, "kind")),
     p_agent_name: str(form, "agent_name"),
     p_agent_company: str(form, "agent_company"),
     p_agent_email: str(form, "agent_email"),
@@ -59,7 +60,7 @@ export async function placeHolds(form: FormData) {
   })) as { id: string }[] | null;
   const sorted = [...dates].sort();
   const ids = ((placed ?? []) as { id: string }[]).map((h) => h.id).join(",");
-  const kind = str(form, "kind") === "rental" ? "rental" : "show";
+  const kind = parseKind(str(form, "kind"));
   // Land on the day with the same "build an offer / rental form?" pop-up as the calendar.
   redirect(`/day/${sorted[0]}?ask=${ids}&kind=${kind}`);
 }
@@ -69,7 +70,7 @@ export type CalendarHoldState = {
   ok?: string;
   done?: number;
   title?: string;
-  kind?: "show" | "rental";
+  kind?: HoldKind;
   placed?: { id: string; date: string; room_id: string; rank: number | null; status: string }[];
 };
 
@@ -91,7 +92,7 @@ export async function placeHoldsFromCalendar(
     p_room: str(form, "room"),
     p_dates: dates,
     p_title: str(form, "title"),
-    p_kind: str(form, "kind") === "rental" ? "rental" : "show",
+    p_kind: parseKind(str(form, "kind")),
     p_agent_name: str(form, "agent_name"),
     p_agent_company: str(form, "agent_company"),
     p_agent_email: str(form, "agent_email"),
@@ -103,7 +104,7 @@ export async function placeHoldsFromCalendar(
     ok: `${str(form, "title")}: held on ${dates.length} date${dates.length > 1 ? "s" : ""}.`,
     done: (prev.done ?? 0) + 1,
     title: str(form, "title"),
-    kind: str(form, "kind") === "rental" ? "rental" : "show",
+    kind: parseKind(str(form, "kind")),
     placed: ((data ?? []) as { id: string; date: string; room_id: string; rank: number | null; status: string }[]).map(
       (h) => ({ id: h.id, date: h.date, room_id: h.room_id, rank: h.rank, status: h.status }),
     ),
@@ -180,7 +181,7 @@ export async function updateHold(form: FormData) {
   await rpc(form, "update_hold", {
     p_id: str(form, "id"),
     p_title: str(form, "title"),
-    p_kind: str(form, "kind") === "rental" ? "rental" : "show",
+    p_kind: parseKind(str(form, "kind")),
     p_agent_name: str(form, "agent_name"),
     p_agent_company: str(form, "agent_company"),
     p_agent_email: str(form, "agent_email"),

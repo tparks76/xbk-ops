@@ -1,5 +1,6 @@
 "use client";
 
+import type { HoldKind } from "@/lib/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
@@ -30,7 +31,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
   const [open, setOpen] = useState(false);
   const [room, setRoom] = useState(rooms.length === 1 ? rooms[0].id : allRooms[0]?.id ?? "xbk");
   const [flash, setFlash] = useState<{ text: string; email: string } | null>(null);
-  const [offerAsk, setOfferAsk] = useState<{ text: string; email: string; ids: string[]; rental: boolean } | null>(null);
+  const [offerAsk, setOfferAsk] = useState<{ text: string; email: string; ids: string[]; kind: HoldKind } | null>(null);
   const [state, formAction, pending] = useActionState<CalendarHoldState, FormData>(
     placeHoldsFromCalendar,
     {},
@@ -46,7 +47,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
         text: state.ok ?? "",
         email: holdsEmailText(state.title ?? "", state.placed ?? []),
         ids: (state.placed ?? []).map((h) => h.id),
-        rental: state.kind === "rental",
+        kind: state.kind ?? "show",
       });
       router.refresh();
     }
@@ -145,26 +146,30 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
             <h2>Holds placed ✓</h2>
             <div>{offerAsk.text}</div>
             <div style={{ fontSize: 16, fontWeight: 600 }}>
-              {offerAsk.rental
+              {offerAsk.kind === "rental"
                 ? "Would you like to fill out the rental form for these dates?"
-                : "Would you like to build an offer for these dates?"}
+                : offerAsk.kind === "promoter"
+                  ? "The promoter rental form isn’t set up yet."
+                  : "Would you like to build an offer for these dates?"}
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button
-                className="primary"
-                onClick={() =>
-                  router.push(`${offerAsk.rental ? "/rentals/new" : "/offers/new"}?holds=${offerAsk.ids.join(",")}`)
-                }
-              >
-                {offerAsk.rental ? "Yes, open rental form" : "Yes, build offer"}
-              </button>
+              {offerAsk.kind !== "promoter" && (
+                <button
+                  className="primary"
+                  onClick={() =>
+                    router.push(`${offerAsk.kind === "rental" ? "/rentals/new" : "/offers/new"}?holds=${offerAsk.ids.join(",")}`)
+                  }
+                >
+                  {offerAsk.kind === "rental" ? "Yes, open rental form" : "Yes, build offer"}
+                </button>
+              )}
               <button
                 onClick={() => {
                   setFlash({ text: offerAsk.text, email: offerAsk.email });
                   setOfferAsk(null);
                 }}
               >
-                No, back to calendar
+                {offerAsk.kind === "promoter" ? "Back to calendar" : "No, back to calendar"}
               </button>
               <span className="spacer" />
               <CopyButton text={offerAsk.email} label="Copy holds for email" />

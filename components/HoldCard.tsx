@@ -1,3 +1,4 @@
+import { KIND_LABEL } from "@/lib/types";
 import Link from "next/link";
 import CopyButton from "@/components/CopyButton";
 import Countdown from "@/components/Countdown";
@@ -56,7 +57,7 @@ export default function HoldCard({
       className={[
         "hold",
         confirmed ? "is-confirmed" : "",
-        hold.kind === "rental" ? "is-rental" : "",
+        hold.kind !== "show" ? `is-${hold.kind}` : "",
         hold.challenge_deadline ? "is-challenged" : "",
       ].join(" ")}
     >
@@ -65,7 +66,7 @@ export default function HoldCard({
           {confirmed ? "Confirmed" : `H${rank}`}
         </span>
         <strong className="hold-title">{hold.title}</strong>
-        {hold.kind === "rental" && <span className="badge rental">Rental</span>}
+        {hold.kind !== "show" && <span className={`badge ${hold.kind}`}>{KIND_LABEL[hold.kind]}</span>}
         {hold.status === "offer_out" && <span className="badge offer">Offer out</span>}
         {offerId && (
           <Link className="button-link show-offer" href={`/offers/${offerId}`}>
@@ -115,7 +116,7 @@ export default function HoldCard({
               Rental form
             </Link>
           )}
-          {!offerId && !confirmed && hold.kind !== "rental" && (
+          {!offerId && !confirmed && hold.kind === "show" && (
             <Link className="button-link" href={`/offers/new?holds=${hold.id}`}>
               Build offer
             </Link>

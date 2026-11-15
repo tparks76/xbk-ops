@@ -102,17 +102,21 @@ export default async function DayPage({ params, searchParams }: Props) {
             <div style={{ fontSize: 16, fontWeight: 600 }}>
               {sp.kind === "rental"
                 ? "Would you like to fill out the rental form for this date?"
-                : "Would you like to build an offer for this date?"}
+                : sp.kind === "promoter"
+                  ? "The promoter rental form isn’t set up yet."
+                  : "Would you like to build an offer for this date?"}
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Link
-                className="button-link primary-link"
-                href={`${sp.kind === "rental" ? "/rentals/new" : "/offers/new"}?holds=${sp.ask}`}
-              >
-                {sp.kind === "rental" ? "Yes, open rental form" : "Yes, build offer"}
-              </Link>
+              {sp.kind !== "promoter" && (
+                <Link
+                  className="button-link primary-link"
+                  href={`${sp.kind === "rental" ? "/rentals/new" : "/offers/new"}?holds=${sp.ask}`}
+                >
+                  {sp.kind === "rental" ? "Yes, open rental form" : "Yes, build offer"}
+                </Link>
+              )}
               <Link className="button-link" href={`/day/${date}`}>
-                No, stay on this day
+                {sp.kind === "promoter" ? "OK" : "No, stay on this day"}
               </Link>
             </div>
           </div>
