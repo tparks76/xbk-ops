@@ -250,6 +250,30 @@ export async function markOfferSent(form: FormData) {
 // Rentals
 // ---------------------------------------------------------------------------
 
+// Keep the calendar holds' names in step with the rental's Event name.
+async function renameRentalHolds(holdIds: string[], title: string): Promise<string | null> {
+  if (!holdIds.length || !title) return null;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("holds")
+    .select("id,title,kind,agent_name,agent_company,agent_email,notes,status")
+    .in("id", holdIds);
+  for (const h of (data ?? []) as Record<string, string | null>[]) {
+    if (h.status === "released" || h.title === title) continue;
+    const { error } = await supabase.rpc("update_hold", {
+      p_id: h.id,
+      p_title: title,
+      p_kind: h.kind,
+      p_agent_name: h.agent_name ?? "",
+      p_agent_company: h.agent_company ?? "",
+      p_agent_email: h.agent_email ?? "",
+      p_notes: h.notes ?? "",
+    });
+    if (error) return cleanError(error.message);
+  }
+  return null;
+}
+
 export async function saveRental(form: FormData) {
   const staff = await getStaff();
   if (!staff?.canBook) back(form, { error: "Only a booker or owner can save rentals." });
@@ -277,9 +301,11 @@ export async function saveRental(form: FormData) {
 
   if (id) {
     const update = unassigned ? { ...fields, room_id: roomId } : fields;
-    const { error } = await supabase.from("rentals").update(update).eq("id", id);
+    const { data: saved, error } = await supabase.from("rentals").update(update).eq("id", id).select("hold_ids").single();
     if (error) back(form, { error: cleanError(error.message) });
+    const renameError = await renameRentalHolds(saved!.hold_ids ?? [], fields.title);
     revalidatePath("/", "layout");
+    if (renameError) redirect(`/rentals/${id}?error=${encodeURIComponent(`Rental saved, but the hold name couldn't be updated: ${renameError}`)}`);
     redirect(`/rentals/${id}?ok=${encodeURIComponent("Rental saved.")}`);
   }
 
@@ -297,7 +323,9 @@ export async function saveRental(form: FormData) {
         : cleanError(error.message),
     });
   }
+  const renameError = await renameRentalHolds(holdIds, fields.title);
   revalidatePath("/", "layout");
+  if (renameError) redirect(`/rentals/${data!.id}?error=${encodeURIComponent(`Rental saved, but the hold name couldn't be updated: ${renameError}`)}`);
   redirect(`/rentals/${data!.id}?ok=${encodeURIComponent("Rental saved.")}`);
 }
 
