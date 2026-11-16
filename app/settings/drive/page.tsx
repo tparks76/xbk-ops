@@ -1,5 +1,6 @@
 import CopyButton from "@/components/CopyButton";
-import { APPS_SCRIPT, driveReady } from "@/lib/drive";
+import { appsScript, driveReady } from "@/lib/drive";
+import { siteUrl } from "@/lib/offer-pdf";
 import { requireStaff } from "@/lib/session";
 
 // Google Drive show folders: status and one-time setup.
@@ -63,9 +64,9 @@ export default async function DriveSettingsPage() {
       <div className="panel">
         <div className="day-head" style={{ marginBottom: 6 }}>
           <h2 style={{ margin: 0 }}>The script</h2>
-          <CopyButton text={APPS_SCRIPT} />
+          <CopyButton text={appsScript(siteUrl())} />
         </div>
-        <pre className="code-block">{APPS_SCRIPT}</pre>
+        <pre className="code-block">{appsScript(siteUrl())}</pre>
       </div>
     </>
   );

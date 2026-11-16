@@ -95,11 +95,12 @@ export async function saveShowToDrive(holdId: string): Promise<{ ok: boolean; me
   }
 }
 
-// The Apps Script to paste into script.google.com (shown on Settings → Google Drive).
-export const APPS_SCRIPT = `// xBk Ops → Google Drive show folders.
+// The Apps Script to paste into script.google.com (shown on Settings → Google Drive and Ticketing).
+export const appsScript = (appUrl: string) => `// xBk Ops → Google Drive show folders, and Eventim's daily sales email.
 // Makes "MM.DD.YY - Artist" folders in xBk Master Show Files and saves the offer PDF.
 const MASTER_FOLDER_ID = '16-lfyLpUf1g3wu7Z7vyLmlYgUdYIwOVN';
 const SECRET = 'PASTE-THE-SAME-SECRET-AS-IN-VERCEL';
+const APP_URL = '${appUrl}';
 
 function doPost(e) {
   try {
@@ -141,6 +142,37 @@ function doPost(e) {
   } catch (err) {
     return reply({ error: String(err && err.message || err) });
   }
+}
+
+// Eventim's "Daily Event Stats" email → xBk Ops (Track Shows). Runs every hour once set up.
+// Each email is sent once, then labeled "xBk Ops imported".
+function checkSalesEmails() {
+  const label = GmailApp.getUserLabelByName('xBk Ops imported') || GmailApp.createLabel('xBk Ops imported');
+  const threads = GmailApp.search('subject:"Daily Event Stats" -label:"xBk Ops imported" newer_than:10d');
+  threads.forEach(function (thread) {
+    thread.getMessages().forEach(function (m) {
+      const res = UrlFetchApp.fetch(APP_URL + '/api/ticket-email', {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify({
+          secret: SECRET, messageId: m.getId(), date: m.getDate().toISOString(),
+          html: m.getBody(), text: m.getPlainBody()
+        }),
+        muteHttpExceptions: true
+      });
+      if (res.getResponseCode() >= 300) throw new Error('xBk Ops answered ' + res.getResponseCode() + ': ' + res.getContentText());
+    });
+    thread.addLabel(label);
+  });
+}
+
+// Run this once (select it at the top and click Run) to check for sales emails every hour.
+function setUpHourlyCheck() {
+  ScriptApp.getProjectTriggers()
+    .filter(function (t) { return t.getHandlerFunction() === 'checkSalesEmails'; })
+    .forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('checkSalesEmails').timeBased().everyHours(1).create();
+  checkSalesEmails();
 }
 
 function reply(obj) {

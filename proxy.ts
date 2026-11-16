@@ -31,6 +31,7 @@ export async function proxy(request: NextRequest) {
   // /api/sync-events checks its own secret (it's called by Vercel Cron, not a person).
   const isPublic = path.startsWith("/login") || path.startsWith("/auth") || path === "/api/sync-events" || path === "/api/artist-lookup" ||
     path === "/api/ticket-import" ||
+    path === "/api/ticket-email" ||
     path.startsWith("/pdf/"); // /pdf/ pages check their own signed link
 
   if (!data?.claims && !isPublic) {
