@@ -1,6 +1,7 @@
 import Link from "next/link";
 import CopyButton from "@/components/CopyButton";
-import { eventimEventsRaw, eventimReady, normalizeEvents, salesFrom } from "@/lib/eventim";
+import { eventimEventsRaw, eventimOrders, eventimReady, eventimTicketTypes, normalizeEvents } from "@/lib/eventim";
+import { capacityFrom, totalsFromOrders } from "@/lib/eventim-sales";
 import { requireStaff } from "@/lib/session";
 
 export const maxDuration = 60;
@@ -10,18 +11,42 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
   await requireStaff();
   const sp = await searchParams;
   const ready = eventimReady();
-  let result: { count: number; sample: string; names: string[]; hasSales: boolean } | null = null;
+  let result: {
+    count: number;
+    names: string[];
+    sample: { name: string; date: string | null; orders: number; sold: number; comps: number; gross: number; capacity: number | null; tiers: string; statuses: string } | null;
+    salesError: string;
+  } | null = null;
   let error = "";
   if (ready && sp.test === "1") {
     try {
-      const raw = await eventimEventsRaw();
-      const events = normalizeEvents(raw);
-      result = {
-        count: events.length,
-        names: events.slice(0, 10).map((e) => `${e.date ?? "?"} · ${e.name} (id ${e.id || "?"})`),
-        hasSales: events.some((e) => salesFrom(e.raw) !== null),
-        sample: JSON.stringify(events.length ? events[0].raw : raw, null, 2).slice(0, 6000),
-      };
+      const events = normalizeEvents(await eventimEventsRaw());
+      const today = new Date().toISOString().slice(0, 10);
+      // Try sales on the next upcoming event (totals only; no customer details are shown or kept).
+      const next = events.filter((e) => e.date && e.date >= today).sort((a, b) => (a.date! < b.date! ? -1 : 1))[0] ?? events[0];
+      let sample = null;
+      let salesError = "";
+      if (next) {
+        try {
+          const orders = await eventimOrders(next.id);
+          const types = await eventimTicketTypes(next.id).catch(() => []);
+          const t = totalsFromOrders(orders);
+          sample = {
+            name: next.name,
+            date: next.date,
+            orders: orders.length,
+            sold: t.sold,
+            comps: t.comps,
+            gross: t.gross,
+            capacity: capacityFrom(types),
+            tiers: t.tiers.map((x) => `${x.name}: ${x.sold} at $${x.price}`).join(" · ") || "—",
+            statuses: Object.entries(t.statuses).map(([k, v]) => `${k}: ${v}`).join(" · ") || "—",
+          };
+        } catch (e) {
+          salesError = (e as Error).message;
+        }
+      }
+      result = { count: events.length, names: events.slice(0, 10).map((e) => `${e.date ?? "?"} · ${e.name} · ${e.venue} (id ${e.id})`), sample, salesError };
     } catch (e) {
       error = (e as Error).message;
     }
@@ -37,7 +62,7 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
         <p>
           <Link href="/track">Track Shows</Link> sets each confirmed show’s ticket sales against its offer. Counts can be
           typed in on each show, and shows linked to their Eventim event can import sales from Eventim (once a day
-          automatically, or with the Import button).
+          automatically each morning, or with Import sales now). Shows are matched to their Eventim event by date and room.
         </p>
       </div>
       {!ready && (
@@ -69,10 +94,7 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
           {result && (
             <>
               <p>
-                Eventim sent <strong>{result.count}</strong> event{result.count === 1 ? "" : "s"}.{" "}
-                {result.hasSales
-                  ? "Sales numbers were found, so imports will work."
-                  : "The connection works, but Eventim’s event listing doesn’t include ticket sales. Shows can be linked to their Eventim events now; sales import turns on once Eventim gives sales access for your API credentials."}
+                Eventim sent <strong>{result.count}</strong> event{result.count === 1 ? "" : "s"}.
               </p>
               {result.names.length > 0 && (
                 <ul className="small">
@@ -81,11 +103,21 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
                   ))}
                 </ul>
               )}
-              <div className="day-head" style={{ marginBottom: 4 }}>
-                <span className="muted small">What Eventim sends for one event:</span>
-                <CopyButton text={result.sample} />
-              </div>
-              <pre className="code-block">{result.sample}</pre>
+              {result.salesError && <div className="flash error">Sales: {result.salesError}</div>}
+              {result.sample && (
+                <div className="panel" style={{ background: "#f6f6f2" }}>
+                  <strong>Sales check: {result.sample.name}</strong> ({result.sample.date})
+                  <div className="small" style={{ marginTop: 4 }}>
+                    {result.sample.orders} orders · <strong>{result.sample.sold} sold</strong> · {result.sample.comps} comps · $
+                    {result.sample.gross.toFixed(2)} face value · capacity {result.sample.capacity ?? "?"}
+                  </div>
+                  <div className="small">By ticket type: {result.sample.tiers}</div>
+                  <div className="small muted">Ticket statuses seen: {result.sample.statuses}</div>
+                  <div className="small muted" style={{ marginTop: 4 }}>
+                    Compare these with Eventim’s Live Stats for the same show. If they match, sales import is working.
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

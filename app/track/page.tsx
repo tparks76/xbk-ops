@@ -1,5 +1,7 @@
 import Link from "next/link";
 import Flash from "@/components/Flash";
+import { importSalesNow } from "@/lib/actions";
+import { eventimReady } from "@/lib/eventim";
 import { fmtDate, todayISO } from "@/lib/dates";
 import { money, normalizeTerms, type Terms } from "@/lib/offer";
 import { ROOM_FULL } from "@/lib/offer-data";
@@ -14,7 +16,7 @@ type Search = Promise<{ past?: string; ok?: string; error?: string }>;
 
 // Track Shows: every confirmed show with its ticket sales against the offer.
 export default async function TrackPage({ searchParams }: { searchParams: Search }) {
-  await requireStaff();
+  const staff = await requireStaff();
   const sp = await searchParams;
   const past = sp.past === "1";
   const today = todayISO();
@@ -35,13 +37,14 @@ export default async function TrackPage({ searchParams }: { searchParams: Search
     for (const hid of o.hold_ids) offerFor.set(hid, { id: o.id, terms: normalizeTerms(o.terms) }); // newest wins
   }
   const { data: countRows, error: countError } = ids.length
-    ? await supabase.from("ticket_counts").select("hold_id,counted_at,sold,comps,gross,tiers,source").in("hold_id", ids).order("counted_at", { ascending: false })
+    ? await supabase.from("ticket_counts").select("hold_id,counted_at,sold,comps,gross,tiers,source,capacity").in("hold_id", ids).order("counted_at", { ascending: false })
     : { data: [], error: null };
   const countsFor = new Map<string, Count[]>();
   for (const c of (countRows ?? []) as (Count & { hold_id: string })[]) {
     countsFor.set(c.hold_id, [...(countsFor.get(c.hold_id) ?? []), c]);
   }
 
+  const latestOf = (id: string) => countsFor.get(id)?.[0] as (Count & { capacity?: number | null }) | undefined;
   const rows = holds.map((h) => {
     const offer = offerFor.get(h.id);
     return { h, offer, tr: offer ? track(offer.terms, countsFor.get(h.id) ?? [], h.date, today) : null, counted: countsFor.get(h.id)?.[0]?.counted_at };
@@ -60,7 +63,12 @@ export default async function TrackPage({ searchParams }: { searchParams: Search
           </Link>
         </div>
         <span className="spacer" />
-
+        {staff.canBook && eventimReady() && (
+          <form action={importSalesNow}>
+            <input type="hidden" name="returnTo" value={past ? "/track?past=1" : "/track"} />
+            <button>Import sales from Eventim</button>
+          </form>
+        )}
       </div>
       <Flash
         ok={sp.ok}
@@ -97,10 +105,16 @@ export default async function TrackPage({ searchParams }: { searchParams: Search
                     <div className="muted small">{ROOM_FULL[h.room_id] ?? h.room_id}</div>
                   </td>
                   {!offer || !tr ? (
-                    <td colSpan={6} className="muted small">
-                      No offer for this date, so there’s nothing to compare against.{" "}
-                      <Link href={`/offers/new?holds=${h.id}`}>Build one</Link>
-                    </td>
+                    <>
+                      <td className="small">
+                        {latestOf(h.id) ? `${latestOf(h.id)!.sold}${latestOf(h.id)!.capacity ? ` / ${latestOf(h.id)!.capacity}` : ""}` : "—"}
+                      </td>
+                      <td>{latestOf(h.id) ? money(Number(latestOf(h.id)!.gross)) : "—"}</td>
+                      <td colSpan={4} className="muted small">
+                        No offer for this date, so there’s no break-even or payout to compare.{" "}
+                        <Link href={`/offers/new?holds=${h.id}`}>Build one</Link>
+                      </td>
+                    </>
                   ) : (
                     <>
                       <td style={{ minWidth: 130 }}>
