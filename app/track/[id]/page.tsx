@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Flash from "@/components/Flash";
 import SalesChart from "@/components/SalesChart";
-import { addTicketCount, deleteTicketCount, importSalesNow, linkEventimEvent } from "@/lib/actions";
+import { deleteTicketCount, importSalesNow, linkEventimEvent } from "@/lib/actions";
 import { fmtDate, fmtDateTime, todayISO } from "@/lib/dates";
 import { eventimEvents, eventimReady, type EventimEvent } from "@/lib/eventim";
 import { money, normalizeTerms } from "@/lib/offer";
@@ -44,6 +44,8 @@ export default async function TrackShowPage({ params, searchParams }: Props) {
   const counts = (countRows ?? []) as (Count & { id: string; note: string | null; created_by: string | null })[];
   const tr = t ? track(t, counts, h.date, today) : null;
   const latest = counts[0];
+  type Fees = { face: number; addOns: number; facility: number; service: number; processing: number; delivery: number; tax: number; discounts: number; other: number; allIn: number; itemized: boolean };
+  const latestFees = (counts.find((c) => (c as unknown as { fees?: Fees | null }).fees) as unknown as { fees?: Fees } | undefined)?.fees ?? null;
   const latestTier = (name: string) => (latest?.tiers as TierCount[] | undefined)?.find((x) => x.name === name)?.sold;
 
   // Eventim events near this date, to link the show.
@@ -203,42 +205,67 @@ export default async function TrackShowPage({ params, searchParams }: Props) {
             </section>
 
             <div>
-              {staff.canBook && (
-                <section className="panel">
-                  <h2>Add today’s count</h2>
-                  <form action={addTicketCount} className="stack-form">
-                    <input type="hidden" name="hold_id" value={h.id} />
-                    <input type="hidden" name="returnTo" value={here} />
-                    <div className="form-grid">
-                      {t.tiers
-                        .filter((x, i) => i < 2 || x.qty > 0)
-                        .map((x) => (
-                          <label key={x.name}>
-                            {x.name} sold <span className="muted small">({money(x.price)})</span>
-                            <input type="hidden" name="tier_name" value={x.name} />
-                            <input type="hidden" name="tier_price" value={x.price} />
-                            <input type="number" min={0} name="tier_sold" defaultValue={latestTier(x.name) ?? ""} required />
-                          </label>
-                        ))}
-                      <label>
-                        Comps
-                        <input type="number" min={0} name="comps" defaultValue={latest?.comps ?? 0} />
-                      </label>
-                      <label>
-                        Gross <span className="muted small">(optional; blank = sold × price)</span>
-                        <input type="number" min={0} step="0.01" name="gross" />
-                      </label>
-                      <label className="span2">
-                        Note
-                        <input name="note" placeholder="e.g. after the presale" />
-                      </label>
-                    </div>
-                    <div>
-                      <button className="primary">Save count</button>
-                    </div>
-                  </form>
-                </section>
-              )}
+              <section className="panel">
+                <h2>Money collected</h2>
+                {!latestFees ? (
+                  <div className="muted small">Shows up after the next import from Eventim.</div>
+                ) : (
+                  <>
+                    <table className="list fee-sum">
+                      <tbody>
+                        <tr>
+                          <td>Tickets (face value)</td>
+                          <td>{money(latestFees.face)}</td>
+                        </tr>
+                        {latestFees.addOns > 0 && (
+                          <tr>
+                            <td>Add-ons</td>
+                            <td>{money(latestFees.addOns)}</td>
+                          </tr>
+                        )}
+                        {(
+                          [
+                            ["Facility fees", latestFees.facility],
+                            ["Service fees", latestFees.service],
+                            ["Processing fees", latestFees.processing],
+                            ["Delivery fees", latestFees.delivery],
+                            ["Sales tax", latestFees.tax],
+                          ] as [string, number][]
+                        )
+                          .filter(([, v]) => v > 0)
+                          .map(([k, v]) => (
+                            <tr key={k}>
+                              <td>{k}</td>
+                              <td>{money(v)}</td>
+                            </tr>
+                          ))}
+                        {latestFees.discounts > 0 && (
+                          <tr>
+                            <td>Discounts (coupons)</td>
+                            <td>−{money(latestFees.discounts)}</td>
+                          </tr>
+                        )}
+                        {latestFees.other > 0 && (
+                          <tr>
+                            <td>{latestFees.itemized ? "Other fees and tax (not itemized)" : "Fees and tax"}</td>
+                            <td>{money(latestFees.other)}</td>
+                          </tr>
+                        )}
+                        <tr className="total">
+                          <td>Total paid by buyers</td>
+                          <td>{money(latestFees.allIn)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    {!latestFees.itemized && (
+                      <div className="muted small" style={{ marginTop: 4 }}>
+                        Eventim doesn’t split the fees up for this account, so “Fees and tax” is the total paid less face
+                        value.
+                      </div>
+                    )}
+                  </>
+                )}
+              </section>
 
               {staff.canBook && (
                 <section className="panel">

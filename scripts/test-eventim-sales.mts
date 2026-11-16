@@ -41,4 +41,8 @@ const real = totalsFromOrders([
 ], types);
 ok(real.sold === 3 && real.gross === 60 && real.comps === 0 && real.addOns.sold === 1 && real.addOns.gross === 50, "real shape: names and prices from ticket types, repeat order once: " + JSON.stringify([real.sold, real.gross, real.comps, real.addOns]));
 ok(real.tiers.find((x) => x.name === "General Admission")?.sold === 3, "tier named from ticket type");
+ok(real.fees.face === 60 && real.fees.addOns === 50 && real.fees.allIn === 145.47 && real.fees.other === 35.47 && !real.fees.itemized, "fees: all-in less face when not itemized " + JSON.stringify(real.fees));
+const priced = totalsFromOrders([{ id: 1, tickets: [{ status: "purchased", ticketType: { id: 7 }, totalPrice: 26.74 } as never] }],
+  [{ id: 7, name: "General Admission", price: 20, _pricing: { price: 20, facilityFee: 2, customerFee: 3, processingFee: 0.4, tax: 1.34 } }]);
+ok(priced.fees.itemized && priced.fees.facility === 2 && priced.fees.service === 3 && priced.fees.tax === 1.34 && priced.fees.other === 0, "fees itemized from ticket type pricing " + JSON.stringify(priced.fees));
 console.log(`${pass} passed, ${fail} failed`);

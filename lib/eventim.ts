@@ -36,12 +36,28 @@ async function getWithHeaders(path: string): Promise<{ body: unknown; headers: H
 }
 
 // Every order for an event (100 per page; follows the page cursor).
+// Fee breakdown on each order needs a special permission; ask for it, and stop asking if refused.
+let breakdownAllowed = true;
+
 export async function eventimOrders(eventId: string): Promise<EvOrder[]> {
+  try {
+    return await fetchOrders(eventId, breakdownAllowed);
+  } catch (e) {
+    if (breakdownAllowed && /permission|403/.test((e as Error).message)) {
+      breakdownAllowed = false;
+      return fetchOrders(eventId, false);
+    }
+    throw e;
+  }
+}
+
+async function fetchOrders(eventId: string, withBreakdown: boolean): Promise<EvOrder[]> {
   const client = encodeURIComponent(process.env.EVENTIM_CLIENT_ID ?? "");
   const all: EvOrder[] = [];
   let token: string | null = null;
   for (let page = 0; page < 200; page++) {
     const q = new URLSearchParams({ pageSize: "100", startDate: "2015-01-01", ignoreLyteOrders: "true" });
+    if (withBreakdown) q.set("withBreakdown", "true");
     if (token) q.set("continuationToken", token);
     const { body, headers } = await getWithHeaders(`/client/${client}/event/${encodeURIComponent(eventId)}/sales?${q}`);
     const b = body as Record<string, unknown> | EvOrder[];
@@ -58,7 +74,7 @@ export async function eventimOrders(eventId: string): Promise<EvOrder[]> {
 }
 
 export async function eventimTicketTypes(eventId: string): Promise<EvTicketType[]> {
-  const b = await get(`/event/${encodeURIComponent(eventId)}/tickettype`);
+  const b = await get(`/event/${encodeURIComponent(eventId)}/tickettype?withPricing=true`);
   return Array.isArray(b) ? (b as EvTicketType[]) : [];
 }
 

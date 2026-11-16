@@ -14,7 +14,7 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
   let result: {
     count: number;
     names: string[];
-    sample: { name: string; date: string | null; orders: number; sold: number; comps: number; gross: number; capacity: number | null; tiers: string; statuses: string; raw: string } | null;
+    sample: { name: string; date: string | null; orders: number; sold: number; comps: number; gross: number; capacity: number | null; tiers: string; statuses: string; raw: string; fees: string } | null;
     events: { id: string; label: string }[];
     salesError: string;
   } | null = null;
@@ -56,6 +56,7 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
             gross: t.gross,
             capacity: capacityFrom(types),
             tiers: t.tiers.map((x) => `${x.name}${x.addon ? " (add-on, not counted)" : ""}: ${x.sold} at $${x.price}`).join(" · ") || "—",
+            fees: `face $${t.fees.face.toFixed(2)} · add-ons $${t.fees.addOns.toFixed(2)} · facility $${t.fees.facility.toFixed(2)} · service $${t.fees.service.toFixed(2)} · processing $${t.fees.processing.toFixed(2)} · tax $${t.fees.tax.toFixed(2)}${t.fees.other ? ` · not itemized $${t.fees.other.toFixed(2)}` : ""} · buyers paid $${t.fees.allIn.toFixed(2)}`,
             statuses:
               (Object.entries(t.statuses).map(([k, v]) => `${k}: ${v}`).join(" · ") || "—") +
               (t.comps ? ` · $0 tickets: ${Object.entries(t.compsBy).map(([k, v]) => `${v} ${k}`).join(", ")}` : ""),
@@ -142,6 +143,7 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
                     {result.sample.gross.toFixed(2)} face value · capacity {result.sample.capacity ?? "?"}
                   </div>
                   <div className="small">By ticket type: {result.sample.tiers}</div>
+                  <div className="small">Money: {result.sample.fees}</div>
                   <div className="small muted">Ticket statuses seen: {result.sample.statuses}</div>
                   <div className="small muted" style={{ marginTop: 4 }}>
                     Compare these with Eventim’s Live Stats for the same show. If they match, sales import is working.

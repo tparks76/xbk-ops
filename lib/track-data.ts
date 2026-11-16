@@ -85,6 +85,7 @@ export async function importEventimSales(holdIds?: string[]): Promise<{ done: nu
           comps: t.comps,
           gross: t.gross,
           tiers: t.tiers,
+          fees: t.fees,
           capacity,
           created_by: "eventim",
           note:

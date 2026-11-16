@@ -9,7 +9,24 @@ export type EvTicket = {
   ticketType?: { id?: number; name?: string };
 };
 export type EvOrder = { id?: number; isValid?: boolean; createdAt?: string | null; tickets?: EvTicket[] };
-export type EvTicketType = { id?: number; name?: string; allotment?: number; price?: number; faceValue?: number };
+export type EvPricing = { price?: number; facilityFee?: number; tax?: number; customerFee?: number; processingFee?: number };
+export type EvTicketType = { id?: number; name?: string; allotment?: number; price?: number; faceValue?: number; _pricing?: EvPricing | null };
+
+// Money collected, split up. Per-ticket fee fields are used when Eventim sends them; otherwise each
+// ticket type's price list (withPricing) is used. "other" is whatever's left of the all-in total.
+export type Fees = {
+  face: number; // tickets' face value (= gross)
+  addOns: number; // add-ons' face value
+  facility: number;
+  service: number; // customer / service fee
+  processing: number;
+  delivery: number;
+  tax: number;
+  discounts: number; // coupons
+  other: number; // all-in total not accounted for above (fees Eventim doesn't itemize)
+  allIn: number; // what buyers paid in total
+  itemized: boolean; // false = no fee breakdown available, so all fees are in "other"
+};
 
 // Add-ons (table reservations, parking, merch bundles…) aren't admissions: they're counted
 // separately and left out of tickets sold, gross and capacity.
@@ -44,6 +61,7 @@ export type Totals = {
   tiers: { name: string; sold: number; price: number; gross: number; addon?: boolean }[];
   addOns: { sold: number; gross: number }; // left out of the ticket numbers
   compsBy: Record<string, number>; // "$0 tickets" by ticket type and status, to check against Eventim
+  fees: Fees;
   statuses: Record<string, number>; // every ticket status seen, for checking
   byDay: { day: string; sold: number; gross: number; comps: number }[]; // cumulative, by order day
 };
@@ -62,6 +80,9 @@ export function totalsFromOrders(orders: EvOrder[], types: EvTicketType[] = []):
   let gross = 0;
   const addOns = { sold: 0, gross: 0 };
   const compsBy: Record<string, number> = {};
+  const f = { face: 0, addOns: 0, facility: 0, service: 0, processing: 0, delivery: 0, tax: 0, discounts: 0, allIn: 0 };
+  let itemized = false;
+  const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
   const seen = new Set<string>();
   for (const o of orders) {
     if (o.isValid === false) continue;
@@ -78,6 +99,20 @@ export function totalsFromOrders(orders: EvOrder[], types: EvTicketType[] = []):
       const name = t.ticketType?.name?.trim() || type?.name?.trim() || "Tickets";
       const typePrice = Number(type?.price ?? type?.faceValue);
       const face = priceOf(t) || (Number.isFinite(typePrice) && typePrice > 0 ? typePrice : 0) || priceFromTotal(t);
+      // Fees for this ticket: from the ticket if Eventim sent them, else from its type's price list.
+      const tk = t as Record<string, unknown>;
+      const own = ["facilityFee", "processingFee", "tax", "deliveryFee", "serviceFee", "customerFee"].some((k) => tk[k] !== undefined);
+      const pr = type?._pricing ?? null;
+      if (own || pr) itemized = true;
+      f.facility += own ? n(tk.facilityFee) : n(pr?.facilityFee);
+      f.service += own ? n(tk.serviceFee ?? tk.customerFee) : n(pr?.customerFee);
+      f.processing += own ? n(tk.processingFee) : n(pr?.processingFee);
+      f.delivery += n(tk.deliveryFee);
+      f.tax += own ? n(tk.tax) : n(pr?.tax);
+      f.discounts += n(tk.couponAmount);
+      f.allIn += n(t.totalPrice);
+      if (isAddOn(name)) f.addOns += face;
+      else f.face += face;
       if (isAddOn(name)) {
         addOns.sold++;
         addOns.gross += face;
@@ -134,6 +169,22 @@ export function totalsFromOrders(orders: EvOrder[], types: EvTicketType[] = []):
     })),
     addOns: { sold: addOns.sold, gross: round2(addOns.gross) },
     compsBy,
+    fees: (() => {
+      const accounted = f.face + f.addOns + f.facility + f.service + f.processing + f.delivery + f.tax - f.discounts;
+      return {
+        face: round2(f.face),
+        addOns: round2(f.addOns),
+        facility: round2(f.facility),
+        service: round2(f.service),
+        processing: round2(f.processing),
+        delivery: round2(f.delivery),
+        tax: round2(f.tax),
+        discounts: round2(f.discounts),
+        other: round2(Math.max(0, f.allIn - accounted)),
+        allIn: round2(f.allIn),
+        itemized,
+      };
+    })(),
     statuses,
     byDay,
   };
