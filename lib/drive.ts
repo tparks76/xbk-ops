@@ -73,6 +73,8 @@ export async function saveShowToDrive(holdId: string): Promise<{ ok: boolean; me
 
   try {
     const r = await callScript({
+      // the folder made before, so it's found even if someone renamed it in Drive
+      folderId: hold.drive_folder_url?.match(/folders\/([\w-]+)/)?.[1],
       folderName,
       yearFolder,
       fileName: `Offer - ${hold.title.trim()} - ${folderName.split(" - ")[0]}.pdf`,
@@ -112,10 +114,20 @@ function doPost(e) {
       if (years.hasNext()) parent = years.next();
     }
 
-    // Reuse the show's folder if it's already there.
-    const found = parent.getFoldersByName(req.folderName);
-    const existed = found.hasNext();
-    const folder = existed ? found.next() : parent.createFolder(req.folderName);
+    // Reuse the show's folder: the one made before (even if renamed), or one with the same name.
+    let folder = null;
+    if (req.folderId) {
+      try {
+        const f = DriveApp.getFolderById(req.folderId);
+        if (!f.isTrashed()) folder = f;
+      } catch (err) {}
+    }
+    let existed = !!folder;
+    if (!folder) {
+      const found = parent.getFoldersByName(req.folderName);
+      existed = found.hasNext();
+      folder = existed ? found.next() : parent.createFolder(req.folderName);
+    }
 
     if (req.pdfBase64 && req.fileName) {
       const old = folder.getFilesByName(req.fileName);
