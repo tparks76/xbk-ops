@@ -14,6 +14,20 @@ export type EvTicketType = { id?: number; name?: string; allotment?: number; pri
 // separately and left out of tickets sold, gross and capacity.
 export const isAddOn = (name?: string) => /^\s*add[\s-]?ons?\b|\(tickets? not incl|\bupgrade\b|\bparking\b|\bmerch\b/i.test(name ?? "");
 
+// The ticket's face value. Eventim's documents call it faceValue, but fall back to other price fields.
+export function priceOf(t: EvTicket & Record<string, unknown>): number {
+  for (const k of ["faceValue", "facevalue", "face_value", "price", "ticketPrice", "basePrice"]) {
+    const v = Number((t as Record<string, unknown>)[k]);
+    if (Number.isFinite(v) && v > 0) return v;
+  }
+  const total = Number(t.totalPrice);
+  if (Number.isFinite(total) && total > 0) {
+    const fees = ["facilityFee", "deliveryFee", "processingFee", "tax"].reduce((s, k) => s + (Number((t as Record<string, unknown>)[k]) || 0), 0);
+    return Math.max(0, Math.round((total - fees) * 100) / 100);
+  }
+  return 0;
+}
+
 // Ticket statuses that count as sold. Anything refunded, cancelled, voided etc. doesn't.
 export const isSold = (status?: string) => !/refund|cancel|void|revok|return|declin|fail|pending|reserv|expired|transferred_out/i.test(status ?? "purchased");
 
@@ -39,14 +53,19 @@ export function totalsFromOrders(orders: EvOrder[]): Totals {
   let gross = 0;
   const addOns = { sold: 0, gross: 0 };
   const compsBy: Record<string, number> = {};
+  const seen = new Set<string>();
   for (const o of orders) {
     if (o.isValid === false) continue;
+    // The same order can come back on two pages: count it once.
+    const oid = o.id !== undefined ? `o${o.id}` : "";
+    if (oid && seen.has(oid)) continue;
+    if (oid) seen.add(oid);
     const day = (o.createdAt ?? "").slice(0, 10) || "unknown";
     for (const t of o.tickets ?? []) {
       const st = t.status ?? "purchased";
       statuses[st] = (statuses[st] ?? 0) + 1;
       if (!isSold(st)) continue;
-      const face = Number(t.faceValue ?? 0) || 0;
+      const face = priceOf(t);
       const name = t.ticketType?.name?.trim() || "Tickets";
       if (isAddOn(name)) {
         addOns.sold++;

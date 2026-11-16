@@ -7,14 +7,15 @@ import { requireStaff } from "@/lib/session";
 export const maxDuration = 60;
 
 // Ticketing (Eventim US): connection status, setup, and a test that shows what Eventim sends.
-export default async function TicketingSettingsPage({ searchParams }: { searchParams: Promise<{ test?: string }> }) {
+export default async function TicketingSettingsPage({ searchParams }: { searchParams: Promise<{ test?: string; event?: string }> }) {
   await requireStaff();
   const sp = await searchParams;
   const ready = eventimReady();
   let result: {
     count: number;
     names: string[];
-    sample: { name: string; date: string | null; orders: number; sold: number; comps: number; gross: number; capacity: number | null; tiers: string; statuses: string } | null;
+    sample: { name: string; date: string | null; orders: number; sold: number; comps: number; gross: number; capacity: number | null; tiers: string; statuses: string; raw: string } | null;
+    events: { id: string; label: string }[];
     salesError: string;
   } | null = null;
   let error = "";
@@ -23,7 +24,10 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
       const events = normalizeEvents(await eventimEventsRaw());
       const today = new Date().toISOString().slice(0, 10);
       // Try sales on the next upcoming event (totals only; no customer details are shown or kept).
-      const next = events.filter((e) => e.date && e.date >= today).sort((a, b) => (a.date! < b.date! ? -1 : 1))[0] ?? events[0];
+      const next =
+        (sp.event && events.find((e) => e.id === sp.event)) ||
+        events.filter((e) => e.date && e.date >= today).sort((a, b) => (a.date! < b.date! ? -1 : 1))[0] ||
+        events[0];
       let sample = null;
       let salesError = "";
       if (next) {
@@ -31,7 +35,19 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
           const orders = await eventimOrders(next.id);
           const types = await eventimTicketTypes(next.id).catch(() => []);
           const t = totalsFromOrders(orders);
+          // Two orders with names, emails, barcodes and addresses taken out, to check field names.
+          const strip = (v: unknown): unknown =>
+            Array.isArray(v)
+              ? v.map(strip)
+              : v && typeof v === "object"
+                ? Object.fromEntries(
+                    Object.entries(v as Record<string, unknown>)
+                      .filter(([k]) => !/email|name$|first|last|ip|zip|barcode|rfid|phone|address|customer/i.test(k) || /ticketType|deliveryMethod/i.test(k))
+                      .map(([k, x]) => [k, strip(x)]),
+                  )
+                : v;
           sample = {
+            raw: JSON.stringify(strip(orders.slice(0, 2)), null, 2).slice(0, 5000),
             name: next.name,
             date: next.date,
             orders: orders.length,
@@ -48,7 +64,7 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
           salesError = (e as Error).message;
         }
       }
-      result = { count: events.length, names: events.slice(0, 10).map((e) => `${e.date ?? "?"} · ${e.name} · ${e.venue} (id ${e.id})`), sample, salesError };
+      result = { events: events.map((e) => ({ id: e.id, label: `${e.date ?? "?"} · ${e.name}` })), count: events.length, names: events.slice(0, 10).map((e) => `${e.date ?? "?"} · ${e.name} · ${e.venue} (id ${e.id})`), sample, salesError };
     } catch (e) {
       error = (e as Error).message;
     }
@@ -105,6 +121,18 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
                   ))}
                 </ul>
               )}
+              <form action="/settings/ticketing" className="inline-form" style={{ margin: "6px 0" }}>
+                <input type="hidden" name="test" value="1" />
+                <select name="event" defaultValue={sp.event ?? ""}>
+                  <option value="">Next upcoming show</option>
+                  {result.events.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.label}
+                    </option>
+                  ))}
+                </select>
+                <button>Check this show</button>
+              </form>
               {result.salesError && <div className="flash error">Sales: {result.salesError}</div>}
               {result.sample && (
                 <div className="panel" style={{ background: "#f6f6f2" }}>
@@ -118,6 +146,11 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
                   <div className="small muted" style={{ marginTop: 4 }}>
                     Compare these with Eventim’s Live Stats for the same show. If they match, sales import is working.
                   </div>
+                  <div className="day-head" style={{ margin: "8px 0 4px" }}>
+                    <span className="muted small">Two orders as Eventim sends them (personal details removed):</span>
+                    <CopyButton text={result.sample.raw} />
+                  </div>
+                  <pre className="code-block">{result.sample.raw}</pre>
                 </div>
               )}
             </>
