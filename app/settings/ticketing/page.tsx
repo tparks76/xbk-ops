@@ -34,7 +34,7 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
         try {
           const orders = await eventimOrders(next.id);
           const types = await eventimTicketTypes(next.id).catch(() => []);
-          const t = totalsFromOrders(orders);
+          const t = totalsFromOrders(orders, types);
           // Two orders with names, emails, barcodes and addresses taken out, to check field names.
           const strip = (v: unknown): unknown =>
             Array.isArray(v)
@@ -42,7 +42,7 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
               : v && typeof v === "object"
                 ? Object.fromEntries(
                     Object.entries(v as Record<string, unknown>)
-                      .filter(([k]) => !/email|name$|first|last|ip|zip|barcode|rfid|phone|address|customer/i.test(k) || /ticketType|deliveryMethod/i.test(k))
+                      .filter(([k]) => !/email|firstName|lastName|^ip|zip|barcode|rfid|phone|address|customer/i.test(k))
                       .map(([k, x]) => [k, strip(x)]),
                   )
                 : v;

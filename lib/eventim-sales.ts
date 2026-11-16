@@ -2,6 +2,7 @@
 // Plain functions, unit-tested with Node.
 
 export type EvTicket = {
+  id?: number;
   status?: string;
   faceValue?: number;
   totalPrice?: number;
@@ -20,6 +21,11 @@ export function priceOf(t: EvTicket & Record<string, unknown>): number {
     const v = Number((t as Record<string, unknown>)[k]);
     if (Number.isFinite(v) && v > 0) return v;
   }
+  return 0;
+}
+
+// Last resort when neither the ticket nor its type has a face value: the all-in price less listed fees.
+export function priceFromTotal(t: EvTicket & Record<string, unknown>): number {
   const total = Number(t.totalPrice);
   if (Number.isFinite(total) && total > 0) {
     const fees = ["facilityFee", "deliveryFee", "processingFee", "tax"].reduce((s, k) => s + (Number((t as Record<string, unknown>)[k]) || 0), 0);
@@ -44,7 +50,10 @@ export type Totals = {
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-export function totalsFromOrders(orders: EvOrder[]): Totals {
+// Eventim's orders often leave out the ticket type's name and the face value (only the all-in
+// totalPrice comes through), so both are looked up from the event's ticket types by id.
+export function totalsFromOrders(orders: EvOrder[], types: EvTicketType[] = []): Totals {
+  const typeById = new Map(types.filter((x) => x.id !== undefined).map((x) => [String(x.id), x]));
   const tiers = new Map<string, { sold: number; gross: number; prices: number[] }>();
   const statuses: Record<string, number> = {};
   const days = new Map<string, { sold: number; gross: number; comps: number }>();
@@ -65,8 +74,10 @@ export function totalsFromOrders(orders: EvOrder[]): Totals {
       const st = t.status ?? "purchased";
       statuses[st] = (statuses[st] ?? 0) + 1;
       if (!isSold(st)) continue;
-      const face = priceOf(t);
-      const name = t.ticketType?.name?.trim() || "Tickets";
+      const type = t.ticketType?.id !== undefined ? typeById.get(String(t.ticketType.id)) : undefined;
+      const name = t.ticketType?.name?.trim() || type?.name?.trim() || "Tickets";
+      const typePrice = Number(type?.price ?? type?.faceValue);
+      const face = priceOf(t) || (Number.isFinite(typePrice) && typePrice > 0 ? typePrice : 0) || priceFromTotal(t);
       if (isAddOn(name)) {
         addOns.sold++;
         addOns.gross += face;

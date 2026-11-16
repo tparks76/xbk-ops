@@ -29,4 +29,16 @@ ok(capacityFrom([
   { name: "DOS General Admission", allotment: 0 }, { name: "ADD ON: Floor High-Top Table (tickets not incl)", allotment: 3 },
   { name: "ADD ON: Premium Balcony High-Top Table (tickets not incl)", allotment: 2 }]) === 250, "capacity without add-ons");
 ok(isAddOn("ADD ON: Floor High-Top Table") && isAddOn("Add-On Parking") && !isAddOn("General Admission"), "add-on names");
+// The real shape: no name or faceValue on tickets, only ticketType.id and totalPrice
+const types = [{ id: 1905825, name: "General Admission", price: 20, allotment: 250 }, { id: 1905826, name: "ADD ON: Floor High-Top Table (tickets not incl)", price: 50, allotment: 3 }];
+const real = totalsFromOrders([
+  { id: 46367194, isValid: true, createdAt: "2026-11-14T22:40:44.000Z", tickets: [{ id: 646457715, status: "purchased", ticketType: { id: 1905825 }, totalPrice: 26.74 } as never] },
+  { id: 46129665, isValid: true, createdAt: "2026-10-25T22:40:19.000Z", tickets: [
+    { id: 646457963, status: "purchased", ticketType: { id: 1905826 }, totalPrice: 65.33 } as never,
+    { id: 646457713, status: "purchased", ticketType: { id: 1905825 }, totalPrice: 26.7 } as never,
+    { id: 646457714, status: "purchased", ticketType: { id: 1905825 }, totalPrice: 26.7 } as never ] },
+  { id: 46129665, isValid: true, createdAt: "2026-10-25T22:40:19.000Z", tickets: [{ id: 646457713, status: "purchased", ticketType: { id: 1905825 }, totalPrice: 26.7 } as never] },
+], types);
+ok(real.sold === 3 && real.gross === 60 && real.comps === 0 && real.addOns.sold === 1 && real.addOns.gross === 50, "real shape: names and prices from ticket types, repeat order once: " + JSON.stringify([real.sold, real.gross, real.comps, real.addOns]));
+ok(real.tiers.find((x) => x.name === "General Admission")?.sold === 3, "tier named from ticket type");
 console.log(`${pass} passed, ${fail} failed`);

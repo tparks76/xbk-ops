@@ -56,7 +56,7 @@ export async function importEventimSales(holdIds?: string[]): Promise<{ done: nu
       const evs = ids(h.eventim_event_id);
       const orders = (await Promise.all(evs.map((id) => eventimOrders(id)))).flat();
       const types = (await Promise.all(evs.map((id) => eventimTicketTypes(id).catch(() => [])))).flat();
-      const t = totalsFromOrders(orders);
+      const t = totalsFromOrders(orders, types);
       const capacity = capacityFrom(types);
 
       // One count per earlier day with sales, worked out from the order dates (rewritten each
