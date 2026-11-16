@@ -53,6 +53,7 @@ export default async function TrackShowPage({ params, searchParams }: Props) {
     try {
       const all = await eventimEvents();
       const near = all.filter((e) => e.date && Math.abs(Date.parse(e.date) - Date.parse(h.date)) <= 2 * 864e5);
+      near.sort((a, b) => Number(b.date === h.date) - Number(a.date === h.date));
       events = near.length ? near : all.slice(0, 50);
     } catch (e) {
       eventimError = (e as Error).message;
@@ -230,7 +231,7 @@ export default async function TrackShowPage({ params, searchParams }: Props) {
                       <form action={linkEventimEvent} className="inline-form" style={{ flexWrap: "wrap", gap: 6 }}>
                         <input type="hidden" name="hold_id" value={h.id} />
                         <input type="hidden" name="returnTo" value={here} />
-                        <select name="event_id" defaultValue={h.eventim_event_id ?? ""}>
+                        <select name="event_id" defaultValue={h.eventim_event_id ?? (events.filter((e) => e.date === h.date).length === 1 ? events.find((e) => e.date === h.date)!.id : "")}>
                           <option value="">Not linked</option>
                           {h.eventim_event_id && !events.some((e) => e.id === h.eventim_event_id) && (
                             <option value={h.eventim_event_id}>Linked event ({h.eventim_event_id})</option>

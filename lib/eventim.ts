@@ -60,10 +60,13 @@ const pick = (o: Record<string, unknown>, keys: string[]) => {
 
 export function normalizeEvents(j: unknown): EventimEvent[] {
   return findList(j).map((e) => {
-    const id = pick(e, ["id", "eventId", "event_id", "eventID", "uuid"]);
-    const name = pick(e, ["name", "title", "eventName", "event_name", "headliner"]);
-    const when = pick(e, ["date", "eventDate", "event_date", "startDate", "start_date", "startDateTime", "start", "showDate", "doorsDate"]);
-    const date = typeof when === "string" ? (when.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? null) : null;
+    const id = pick(e, ["id", "eventid", "eventId", "event_id", "eventID", "uuid"]);
+    const name = pick(e, ["title", "name", "eventName", "event_name", "headliners"]);
+    const nested = (e.datesTimes as { date?: unknown } | undefined)?.date;
+    const when = pick(e, ["eventStart", "date", "eventDate", "event_date", "startDate", "start_date", "startDateTime", "start", "showDate"]) ?? nested;
+    const sort = typeof e.sortdate === "string" && /^\d{8}$/.test(e.sortdate) ? `${e.sortdate.slice(0, 4)}-${e.sortdate.slice(4, 6)}-${e.sortdate.slice(6)}` : null;
+    // Eventim's times are the venue's local time written as UTC, so the date part is the show date.
+    const date = sort ?? (typeof when === "string" ? (when.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? null) : null);
     return { id: String(id ?? ""), name: String(name ?? "(no name)"), date, raw: e };
   });
 }
