@@ -174,6 +174,29 @@ export default async function TrackShowPage({ params, searchParams }: Props) {
                     ))}
                 </tbody>
               </table>
+              {(latest?.tiers as TierCount[] | undefined)?.some((x) => (x as TierCount & { addon?: boolean }).addon || !t.tiers.some((o) => o.name === x.name)) && (
+                <>
+                  <div className="muted small" style={{ marginTop: 8 }}>
+                    From Eventim{" "}
+                    <span className="muted">(ticket types as named in Eventim; add-ons aren’t counted as tickets)</span>:
+                  </div>
+                  <table className="list">
+                    <tbody>
+                      {(latest!.tiers as (TierCount & { addon?: boolean })[]).map((x) => (
+                        <tr key={x.name}>
+                          <td>
+                            {x.name}
+                            {x.addon && <span className="muted small"> · add-on</span>}
+                          </td>
+                          <td>{money(x.price)}</td>
+                          <td>{x.sold} sold</td>
+                          <td>{money(x.gross)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
               {latest && latest.tiers.length === 0 && (
                 <div className="muted small">The latest count is a total only (no tier breakdown).</div>
               )}

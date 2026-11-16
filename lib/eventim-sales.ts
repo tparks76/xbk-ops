@@ -10,6 +10,10 @@ export type EvTicket = {
 export type EvOrder = { id?: number; isValid?: boolean; createdAt?: string | null; tickets?: EvTicket[] };
 export type EvTicketType = { id?: number; name?: string; allotment?: number; price?: number; faceValue?: number };
 
+// Add-ons (table reservations, parking, merch bundles…) aren't admissions: they're counted
+// separately and left out of tickets sold, gross and capacity.
+export const isAddOn = (name?: string) => /^\s*add[\s-]?ons?\b|\(tickets? not incl|\bupgrade\b|\bparking\b|\bmerch\b/i.test(name ?? "");
+
 // Ticket statuses that count as sold. Anything refunded, cancelled, voided etc. doesn't.
 export const isSold = (status?: string) => !/refund|cancel|void|revok|return|declin|fail|pending|reserv|expired|transferred_out/i.test(status ?? "purchased");
 
@@ -17,7 +21,8 @@ export type Totals = {
   sold: number; // paid tickets
   comps: number; // $0 face value
   gross: number; // face value of paid tickets
-  tiers: { name: string; sold: number; price: number; gross: number }[];
+  tiers: { name: string; sold: number; price: number; gross: number; addon?: boolean }[];
+  addOns: { sold: number; gross: number }; // left out of the ticket numbers
   statuses: Record<string, number>; // every ticket status seen, for checking
   byDay: { day: string; sold: number; gross: number; comps: number }[]; // cumulative, by order day
 };
@@ -31,6 +36,7 @@ export function totalsFromOrders(orders: EvOrder[]): Totals {
   let sold = 0;
   let comps = 0;
   let gross = 0;
+  const addOns = { sold: 0, gross: 0 };
   for (const o of orders) {
     if (o.isValid === false) continue;
     const day = (o.createdAt ?? "").slice(0, 10) || "unknown";
@@ -39,6 +45,17 @@ export function totalsFromOrders(orders: EvOrder[]): Totals {
       statuses[st] = (statuses[st] ?? 0) + 1;
       if (!isSold(st)) continue;
       const face = Number(t.faceValue ?? 0) || 0;
+      const name = t.ticketType?.name?.trim() || "Tickets";
+      if (isAddOn(name)) {
+        addOns.sold++;
+        addOns.gross += face;
+        const tier = tiers.get(name) ?? { sold: 0, gross: 0, prices: [] };
+        tier.sold++;
+        tier.gross += face;
+        tier.prices.push(face);
+        tiers.set(name, tier);
+        continue;
+      }
       const d = days.get(day) ?? { sold: 0, gross: 0, comps: 0 };
       if (face <= 0) {
         comps++;
@@ -48,7 +65,6 @@ export function totalsFromOrders(orders: EvOrder[]): Totals {
         gross += face;
         d.sold++;
         d.gross += face;
-        const name = t.ticketType?.name?.trim() || "Tickets";
         const tier = tiers.get(name) ?? { sold: 0, gross: 0, prices: [] };
         tier.sold++;
         tier.gross += face;
@@ -80,10 +96,14 @@ export function totalsFromOrders(orders: EvOrder[]): Totals {
       sold: t.sold,
       price: round2(t.prices.sort((a, b) => a - b)[Math.floor(t.prices.length / 2)] ?? 0),
       gross: round2(t.gross),
+      ...(isAddOn(name) ? { addon: true } : {}),
     })),
+    addOns: { sold: addOns.sold, gross: round2(addOns.gross) },
     statuses,
     byDay,
   };
 }
 
-export const capacityFrom = (types: EvTicketType[]) => types.reduce((s, t) => s + (Number(t.allotment) || 0), 0) || null;
+// Capacity: the admissions' allotments (box office / day-of-show types usually have none of their own).
+export const capacityFrom = (types: (EvTicketType & { sharedTicketType?: string | null })[]) =>
+  types.filter((t) => !isAddOn(t.name) && !t.sharedTicketType).reduce((s, t) => s + (Number(t.allotment) || 0), 0) || null;

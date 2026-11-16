@@ -59,9 +59,9 @@ export async function importEventimSales(holdIds?: string[]): Promise<{ done: nu
       const t = totalsFromOrders(orders);
       const capacity = capacityFrom(types);
 
-      // First import for this show: fill in one count per earlier day with sales.
-      const { count } = await db.from("ticket_counts").select("id", { count: "exact", head: true }).eq("hold_id", h.id).eq("source", "eventim");
-      const history = (count ?? 0) === 0 ? t.byDay.filter((d) => d.day < today) : [];
+      // One count per earlier day with sales, worked out from the order dates (rewritten each
+      // time, so a correction in Eventim, or in how tickets are counted, carries back).
+      const history = t.byDay.filter((d) => d.day < today);
       const rows = [
         ...history.map((d) => ({
           hold_id: h.id,
@@ -87,7 +87,10 @@ export async function importEventimSales(holdIds?: string[]): Promise<{ done: nu
           tiers: t.tiers,
           capacity,
           created_by: "eventim",
-          note: evs.length > 1 ? `${evs.length} Eventim events` : null,
+          note:
+            [evs.length > 1 ? `${evs.length} Eventim events` : "", t.addOns.sold ? `plus ${t.addOns.sold} add-on${t.addOns.sold > 1 ? "s" : ""} ($${t.addOns.gross.toFixed(2)}) not counted as tickets` : ""]
+              .filter(Boolean)
+              .join(" · ") || null,
         },
       ];
       const { error } = await db.from("ticket_counts").upsert(rows, { onConflict: "hold_id,sales_day", ignoreDuplicates: false });
