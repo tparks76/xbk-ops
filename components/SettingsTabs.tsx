@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "/settings/staff", label: "Staff" },
   { href: "/settings/venues", label: "Venues to watch" },
+  { href: "/settings/drive", label: "Google Drive" },
 ];
 
 export default function SettingsTabs() {

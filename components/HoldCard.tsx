@@ -5,6 +5,7 @@ import Link from "next/link";
 import CopyButton from "@/components/CopyButton";
 import Countdown from "@/components/Countdown";
 import {
+  saveToDrive,
   cancelChallenge,
   challengeHolds,
   confirmHold,
@@ -91,6 +92,16 @@ export default function HoldCard({
         <div className="hold-artist small">
           {artist.genres.length > 0 && <span className="muted">{artist.genres.join(", ")}</span>}
           <ArtistLinks links={artist.links} small />
+        </div>
+      )}
+      {confirmed && (hold.kind === "show" || hold.kind === "copro") && (hold.drive_folder_url || hold.drive_note) && (
+        <div className="hold-drive small">
+          {hold.drive_folder_url && (
+            <a href={hold.drive_folder_url} target="_blank" rel="noopener noreferrer" className="drive-link">
+              📁 Drive folder
+            </a>
+          )}
+          {hold.drive_note && <span className="muted">{hold.drive_note}</span>}
         </div>
       )}
       {(hold.agent_name || hold.agent_company || hold.agent_email) && (
@@ -182,6 +193,14 @@ export default function HoldCard({
                 <button className="primary">Confirm</button>
               </form>
             </>
+          )}
+          {confirmed && (hold.kind === "show" || hold.kind === "copro") && (
+            <form action={saveToDrive}>
+              <Hidden hold={hold} returnTo={returnTo} />
+              <button title="Make the show's Drive folder, or save the latest offer PDF to it again">
+                {hold.drive_folder_url ? "Save offer to Drive again" : "Make Drive folder"}
+              </button>
+            </form>
           )}
           {confirmed && (
             <form action={releaseHold} className="inline-form">

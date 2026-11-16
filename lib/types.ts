@@ -28,6 +28,8 @@ export type Hold = {
   challenged_by: string | null;
   released_reason: string | null;
   artist_id?: string | null;
+  drive_folder_url?: string | null;
+  drive_note?: string | null;
   placed_by: string;
   created_at: string;
   updated_at: string;

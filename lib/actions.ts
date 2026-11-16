@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { runArtistLookups } from "@/lib/artist-data";
+import { driveReady, saveShowToDrive } from "@/lib/drive";
 import { deezerIdFrom, LINK_KINDS, mbidFrom } from "@/lib/artist-lookup";
 import { createClient } from "@/lib/supabase/server";
 import { isValidISO } from "@/lib/dates";
@@ -186,6 +187,9 @@ export async function releaseHolds(form: FormData) {
 }
 
 export async function confirmHold(form: FormData) {
+  const confirmedId = str(form, "id");
+  // Make the show's Google Drive folder (with the offer PDF) once the page has answered.
+  if (driveReady()) after(() => saveShowToDrive(confirmedId).catch(() => undefined));
   const released = (await rpc(form, "confirm_hold", { p_id: str(form, "id") })) as
     | { title: string; agent_name: string | null; agent_email: string | null }[]
     | null;
@@ -634,4 +638,16 @@ export async function deleteArtists(form: FormData) {
   back(form, {
     ok: `Deleted ${done} artist${done > 1 ? "s" : ""}.${ignore ? " Those names won't be added as artists again." : ""}`,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Google Drive show folders
+// ---------------------------------------------------------------------------
+
+export async function saveToDrive(form: FormData) {
+  const staff = await getStaff();
+  if (!staff?.canBook) back(form, { error: "Only a booker or owner can do that." });
+  const r = await saveShowToDrive(str(form, "id"));
+  revalidatePath("/", "layout");
+  back(form, r.ok ? { ok: r.message } : { error: r.message });
 }

@@ -21,6 +21,9 @@ import { artistChoices } from "@/lib/artist-choices";
 import { createClient } from "@/lib/supabase/server";
 import type { DateNote, Hold } from "@/lib/types";
 
+// Confirming a show also makes its Drive folder and offer PDF, which can take a little while.
+export const maxDuration = 60;
+
 type Search = Promise<{ m?: string; view?: string; room?: string; show?: string; error?: string }>;
 
 export default async function CalendarPage({ searchParams }: { searchParams: Search }) {

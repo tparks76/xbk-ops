@@ -449,3 +449,7 @@ table.list.artists tr.picked td { background: #fff8e1; }
 .settings-tabs a { padding: 8px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; color: #333; font-size: 14px; }
 .settings-tabs a.on { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
 .settings-tabs a:hover { text-decoration: none; background: #f2f2ee; }
+.hold-drive { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin: 2px 0 4px; }
+.drive-link { font-weight: 600; }
+.setup-steps li { margin: 6px 0; }
+.code-block { background: #f6f6f2; border: 1px solid var(--line); border-radius: 6px; padding: 10px; font-size: 12px; overflow-x: auto; white-space: pre; max-height: 420px; }

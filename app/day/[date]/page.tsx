@@ -13,6 +13,9 @@ import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { DateNote, Hold } from "@/lib/types";
 
+// Confirming a show also makes its Drive folder and offer PDF, which can take a little while.
+export const maxDuration = 60;
+
 type Props = {
   params: Promise<{ date: string }>;
   searchParams: Promise<{ error?: string; ok?: string; released?: string; confirmed?: string; release?: string; ask?: string; kind?: string }>;
