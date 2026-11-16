@@ -72,7 +72,7 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
                 Eventim sent <strong>{result.count}</strong> event{result.count === 1 ? "" : "s"}.{" "}
                 {result.hasSales
                   ? "Sales numbers were found, so imports will work."
-                  : "No sales numbers were found in the event data yet. Copy the sample below and send it to Claude so the import can be matched up."}
+                  : "The connection works, but Eventim’s event listing doesn’t include ticket sales. Shows can be linked to their Eventim events now; sales import turns on once Eventim gives sales access for your API credentials."}
               </p>
               {result.names.length > 0 && (
                 <ul className="small">

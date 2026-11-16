@@ -37,6 +37,6 @@ export async function importEventimSales(holdIds?: string[]): Promise<{ done: nu
     done,
     message: done
       ? `Imported sales for ${done} show${done > 1 ? "s" : ""}.${missing.length ? ` ${missing.length} had no sales numbers in Eventim's data.` : ""}`
-      : "Eventim's event data didn't include sales numbers. Send Claude the sample from Settings → Ticketing so the import can be matched up.",
+      : "Eventim's event listing doesn't include ticket sales, so there's nothing to import yet. Sales import turns on once Eventim gives sales access for your API credentials. Until then, use Add today's count.",
   };
 }

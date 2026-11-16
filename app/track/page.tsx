@@ -1,8 +1,6 @@
 import Link from "next/link";
 import Flash from "@/components/Flash";
-import { importSalesNow } from "@/lib/actions";
 import { fmtDate, todayISO } from "@/lib/dates";
-import { eventimReady } from "@/lib/eventim";
 import { money, normalizeTerms, type Terms } from "@/lib/offer";
 import { ROOM_FULL } from "@/lib/offer-data";
 import { requireStaff } from "@/lib/session";
@@ -16,7 +14,7 @@ type Search = Promise<{ past?: string; ok?: string; error?: string }>;
 
 // Track Shows: every confirmed show with its ticket sales against the offer.
 export default async function TrackPage({ searchParams }: { searchParams: Search }) {
-  const staff = await requireStaff();
+  await requireStaff();
   const sp = await searchParams;
   const past = sp.past === "1";
   const today = todayISO();
@@ -62,12 +60,7 @@ export default async function TrackPage({ searchParams }: { searchParams: Search
           </Link>
         </div>
         <span className="spacer" />
-        {staff.canBook && eventimReady() && (
-          <form action={importSalesNow}>
-            <input type="hidden" name="returnTo" value="/track" />
-            <button>Import sales from Eventim</button>
-          </form>
-        )}
+
       </div>
       <Flash
         ok={sp.ok}

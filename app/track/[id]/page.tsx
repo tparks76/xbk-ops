@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Flash from "@/components/Flash";
 import SalesChart from "@/components/SalesChart";
-import { addTicketCount, deleteTicketCount, importSalesNow, linkEventimEvent } from "@/lib/actions";
+import { addTicketCount, deleteTicketCount, linkEventimEvent } from "@/lib/actions";
 import { fmtDate, fmtDateTime, todayISO } from "@/lib/dates";
 import { eventimEvents, eventimReady, type EventimEvent } from "@/lib/eventim";
 import { money, normalizeTerms } from "@/lib/offer";
@@ -245,13 +245,10 @@ export default async function TrackShowPage({ params, searchParams }: Props) {
                         </select>
                         <button>Save link</button>
                       </form>
-                      {h.eventim_event_id && (
-                        <form action={importSalesNow} style={{ marginTop: 8 }}>
-                          <input type="hidden" name="hold_id" value={h.id} />
-                          <input type="hidden" name="returnTo" value={here} />
-                          <button>Import sales now</button>
-                        </form>
-                      )}
+                      <div className="muted small" style={{ marginTop: 8 }}>
+                        Linking is ready. Sales will import automatically once Eventim gives sales access for your API
+                        credentials (their event listing doesn’t include ticket sales). Until then, use Add today’s count.
+                      </div>
                     </>
                   )}
                 </section>
