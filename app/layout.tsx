@@ -24,6 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/">Calendar</Link>
               <Link href="/offers">Offers</Link>
               <Link href="/rentals">Rentals</Link>
+              <Link href="/track">Track Shows</Link>
               <Link href="/artists">Artists</Link>
               <Link href="/action-list">Action list</Link>
               {staff.canBook && <Link href="/new">+ New hold</Link>}

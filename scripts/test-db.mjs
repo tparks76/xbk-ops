@@ -213,6 +213,17 @@ await q(`select * from merge_artists($1, $2)`, [W2[0].artist_id, W1[0].artist_id
 ok((await q(`select count(*)::int n from holds where artist_id=$1`, [W2[0].artist_id]))[0].n >= 4, 'merge moves holds by artist');
 await as('tobi@xbk.com');
 
+// track shows: ticket counts per show; bookers add, MOD can't
+await as('bill@xbk.com');
+const TS = await q(`select * from place_holds('xbk', array['2028-03-03']::date[], 'Count Me', 'show')`);
+await q(`insert into ticket_counts (hold_id, tiers, sold, gross, created_by) values ($1, '[{"name":"Advance","sold":40,"price":20,"gross":800}]', 40, 800, 'bill@xbk.com')`, [TS[0].id]);
+ok((await q(`select sold from ticket_counts where hold_id=$1`, [TS[0].id]))[0].sold === 40, 'ticket count saved');
+await q(`select * from set_eventim_event($1, 'EV-123')`, [TS[0].id]);
+ok((await q(`select eventim_event_id from holds where id=$1`, [TS[0].id]))[0].eventim_event_id === 'EV-123', 'show linked to Eventim event');
+await as('mod@xbk.com');
+ok((await err(() => q(`select * from set_eventim_event($1, 'x')`, [TS[0].id]))) !== null, 'MOD cannot link Eventim events');
+await as('tobi@xbk.com');
+
 // staff page: only owners change staff; owners can't lock themselves out
 await as('bill@xbk.com');
 ok((await err(() => q(`select * from save_staff('bill@xbk.com','Bill Rogers','owner',true)`))) !== null, 'booker cannot change staff');

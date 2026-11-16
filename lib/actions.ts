@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { runArtistLookups } from "@/lib/artist-data";
 import { driveReady, saveShowToDrive } from "@/lib/drive";
+import { countFromTiers } from "@/lib/track";
+import { importEventimSales } from "@/lib/track-data";
 import { deezerIdFrom, LINK_KINDS, mbidFrom } from "@/lib/artist-lookup";
 import { createClient } from "@/lib/supabase/server";
 import { isValidISO } from "@/lib/dates";
@@ -650,4 +652,67 @@ export async function saveToDrive(form: FormData) {
   const r = await saveShowToDrive(str(form, "id"));
   revalidatePath("/", "layout");
   back(form, r.ok ? { ok: r.message } : { error: r.message });
+}
+
+// ---------------------------------------------------------------------------
+// Track Shows
+// ---------------------------------------------------------------------------
+
+export async function addTicketCount(form: FormData) {
+  const staff = await getStaff();
+  if (!staff?.canBook) back(form, { error: "Only a booker or owner can add ticket counts." });
+  const holdId = str(form, "hold_id");
+  const names = form.getAll("tier_name").map(String);
+  const prices = form.getAll("tier_price").map((v) => Number(v) || 0);
+  const solds = form.getAll("tier_sold").map((v) => Number(v) || 0);
+  const c = countFromTiers(
+    names.map((name, i) => ({ name, price: prices[i] ?? 0, sold: solds[i] ?? 0, gross: 0 })),
+    Number(str(form, "comps")) || 0,
+  );
+  const grossOverride = str(form, "gross");
+  const supabase = await createClient();
+  const { error } = await supabase.from("ticket_counts").insert({
+    hold_id: holdId,
+    source: "manual",
+    tiers: c.tiers,
+    sold: c.sold,
+    comps: c.comps,
+    gross: grossOverride ? Number(grossOverride) || 0 : c.gross,
+    note: str(form, "note") || null,
+    created_by: staff!.email,
+  });
+  if (error) {
+    back(form, {
+      error: /ticket_counts/.test(error.message) ? "Run 0016_track_shows.sql in Supabase first." : cleanError(error.message),
+    });
+  }
+  revalidatePath("/track");
+  back(form, { ok: `Saved: ${c.sold} sold.` });
+}
+
+export async function deleteTicketCount(form: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("ticket_counts").delete().eq("id", str(form, "count_id"));
+  if (error) back(form, { error: cleanError(error.message) });
+  revalidatePath("/track");
+  back(form, { ok: "Count removed." });
+}
+
+export async function linkEventimEvent(form: FormData) {
+  await rpc(form, "set_eventim_event", { p_hold: str(form, "hold_id"), p_event: str(form, "event_id") });
+  back(form, { ok: str(form, "event_id") ? "Linked to the Eventim event." : "Eventim link removed." });
+}
+
+export async function importSalesNow(form: FormData) {
+  const staff = await getStaff();
+  if (!staff?.canBook) back(form, { error: "Only a booker or owner can import sales." });
+  const id = str(form, "hold_id");
+  let r: { done: number; message: string };
+  try {
+    r = await importEventimSales(id ? [id] : undefined);
+  } catch (e) {
+    back(form, { error: `Eventim: ${(e as Error).message}` });
+  }
+  revalidatePath("/track");
+  back(form, r!.done ? { ok: r!.message } : { error: r!.message });
 }

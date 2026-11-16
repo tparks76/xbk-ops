@@ -272,7 +272,11 @@ export type Budget = {
 };
 
 export function budgetAt(t: Terms, tickets: number): Budget {
-  const gross = grossFor(t, tickets);
+  return budgetForSales(t, tickets, grossFor(t, tickets));
+}
+
+// The same budget for actual sales: tickets sold and the gross they brought in.
+export function budgetForSales(t: Terms, tickets: number, gross: number): Budget {
   const adjGross = afterTax(t, gross);
   const taxes = gross - adjGross;
   const costs = totalCosts(t);

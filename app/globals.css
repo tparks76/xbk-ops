@@ -453,3 +453,25 @@ table.list.artists tr.picked td { background: #fff8e1; }
 .drive-link { font-weight: 600; }
 .setup-steps li { margin: 6px 0; }
 .code-block { background: #f6f6f2; border: 1px solid var(--line); border-radius: 6px; padding: 10px; font-size: 12px; overflow-x: auto; white-space: pre; max-height: 420px; }
+
+/* Track Shows */
+.sold-bar { position: relative; height: 8px; background: #ecebe6; border-radius: 4px; overflow: visible; margin: 3px 0; }
+.sold-bar span { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 4px; }
+.sold-bar i { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #111; }
+.badge.track-sold-out, .badge.track-on-track { background: var(--confirmed-bg); color: var(--confirmed); }
+.badge.track-watch { background: #fff4d6; color: #8a5a00; }
+.badge.track-behind { background: var(--challenge-bg); color: var(--challenge); }
+.badge.track-no-data { background: #eeeee9; color: var(--muted); }
+.track-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.track-cards .stat { margin: 0; }
+.track-cards .big { font-size: 24px; font-weight: 700; line-height: 1.2; }
+.track-cards .big.neg { color: var(--challenge); }
+.sales-chart { width: 100%; height: auto; font-size: 10px; fill: var(--muted); }
+.sales-chart .axis { stroke: #ccc; }
+.sales-chart .cap { stroke: #bbb; stroke-dasharray: 2 3; }
+.sales-chart .be { stroke: #111; stroke-dasharray: 5 3; }
+.sales-chart .be-label { fill: #111; }
+.sales-chart .show { stroke: #ddd; }
+.sales-chart .sold { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+.sales-chart .dot { fill: var(--accent); }
+table.list.track td { vertical-align: top; }
