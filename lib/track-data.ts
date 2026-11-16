@@ -88,7 +88,8 @@ export async function importEventimSales(holdIds?: string[]): Promise<{ done: nu
           capacity,
           created_by: "eventim",
           note:
-            [evs.length > 1 ? `${evs.length} Eventim events` : "", t.addOns.sold ? `plus ${t.addOns.sold} add-on${t.addOns.sold > 1 ? "s" : ""} ($${t.addOns.gross.toFixed(2)}) not counted as tickets` : ""]
+            [evs.length > 1 ? `${evs.length} Eventim events` : "", t.addOns.sold ? `plus ${t.addOns.sold} add-on${t.addOns.sold > 1 ? "s" : ""} ($${t.addOns.gross.toFixed(2)}) not counted as tickets` : "",
+             t.comps ? `$0 tickets: ${Object.entries(t.compsBy).map(([k, v]) => `${v} ${k}`).join(", ")}` : ""]
               .filter(Boolean)
               .join(" · ") || null,
         },

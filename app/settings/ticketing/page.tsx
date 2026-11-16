@@ -40,7 +40,9 @@ export default async function TicketingSettingsPage({ searchParams }: { searchPa
             gross: t.gross,
             capacity: capacityFrom(types),
             tiers: t.tiers.map((x) => `${x.name}${x.addon ? " (add-on, not counted)" : ""}: ${x.sold} at $${x.price}`).join(" · ") || "—",
-            statuses: Object.entries(t.statuses).map(([k, v]) => `${k}: ${v}`).join(" · ") || "—",
+            statuses:
+              (Object.entries(t.statuses).map(([k, v]) => `${k}: ${v}`).join(" · ") || "—") +
+              (t.comps ? ` · $0 tickets: ${Object.entries(t.compsBy).map(([k, v]) => `${v} ${k}`).join(", ")}` : ""),
           };
         } catch (e) {
           salesError = (e as Error).message;

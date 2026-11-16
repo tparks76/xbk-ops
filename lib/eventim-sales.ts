@@ -23,6 +23,7 @@ export type Totals = {
   gross: number; // face value of paid tickets
   tiers: { name: string; sold: number; price: number; gross: number; addon?: boolean }[];
   addOns: { sold: number; gross: number }; // left out of the ticket numbers
+  compsBy: Record<string, number>; // "$0 tickets" by ticket type and status, to check against Eventim
   statuses: Record<string, number>; // every ticket status seen, for checking
   byDay: { day: string; sold: number; gross: number; comps: number }[]; // cumulative, by order day
 };
@@ -37,6 +38,7 @@ export function totalsFromOrders(orders: EvOrder[]): Totals {
   let comps = 0;
   let gross = 0;
   const addOns = { sold: 0, gross: 0 };
+  const compsBy: Record<string, number> = {};
   for (const o of orders) {
     if (o.isValid === false) continue;
     const day = (o.createdAt ?? "").slice(0, 10) || "unknown";
@@ -58,6 +60,8 @@ export function totalsFromOrders(orders: EvOrder[]): Totals {
       }
       const d = days.get(day) ?? { sold: 0, gross: 0, comps: 0 };
       if (face <= 0) {
+        const k = `${name} (${st})`;
+        compsBy[k] = (compsBy[k] ?? 0) + 1;
         comps++;
         d.comps++;
       } else {
@@ -99,6 +103,7 @@ export function totalsFromOrders(orders: EvOrder[]): Totals {
       ...(isAddOn(name) ? { addon: true } : {}),
     })),
     addOns: { sold: addOns.sold, gross: round2(addOns.gross) },
+    compsBy,
     statuses,
     byDay,
   };
