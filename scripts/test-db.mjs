@@ -5,6 +5,8 @@ const db = new PGlite();
 await db.exec(`
   create role anon; create role authenticated;
   create schema auth;
+  create schema storage;
+  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint);
   create function auth.jwt() returns jsonb language sql stable as
     $$ select coalesce(nullif(current_setting('test.jwt', true), ''), '{}')::jsonb $$;
 `);
