@@ -91,7 +91,7 @@ export async function extractOffer(file: { bytes: Buffer; type: string; name: st
     type: "text",
     text:
       "This is a live music offer or deal memo from an outside promoter or co-promoter to xBk, a music venue in Des Moines. " +
-      "Pull out the deal details with the save_offer tool. Leave out anything the document doesn't state; don't guess. " +
+      "Call the save_offer tool once with the deal details. Leave out anything the document doesn't state; don't guess. " +
       "Money as plain numbers (no $). Times like 7:00 PM.",
   });
 
@@ -106,13 +106,25 @@ export async function extractOffer(file: { bytes: Buffer; type: string; name: st
       model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5",
       max_tokens: 2000,
       tools: [{ name: "save_offer", description: "Save the deal details found in the offer", input_schema: SCHEMA }],
-      tool_choice: { type: "tool", name: "save_offer" },
+      // This model doesn't allow forcing a tool, so it's asked to use it (and its reply text is read as a fallback).
+      tool_choice: { type: "auto" },
       messages: [{ role: "user", content }],
     }),
     signal: AbortSignal.timeout(90000),
   });
-  const j = (await res.json()) as { content?: { type: string; input?: Extracted }[]; error?: { message?: string } };
+  const j = (await res.json()) as { content?: { type: string; input?: Extracted; text?: string }[]; error?: { message?: string } };
   if (!res.ok) throw new Error(j.error?.message ?? `Claude answered ${res.status}`);
   const tool = (j.content ?? []).find((c) => c.type === "tool_use");
-  return tool?.input ?? {};
+  if (tool?.input) return tool.input;
+  // No tool call: look for a JSON object in the reply text.
+  const text = (j.content ?? []).map((c) => c.text ?? "").join("\n");
+  const m = text.match(/\{[\s\S]*\}/);
+  if (m) {
+    try {
+      return JSON.parse(m[0]) as Extracted;
+    } catch {
+      /* fall through */
+    }
+  }
+  throw new Error("Claude didn't return the deal details. Try attaching it again.");
 }
