@@ -39,7 +39,21 @@ export function applySetup(t: Terms, opt: SetupOption | "custom"): Terms {
 
 export const AGES = ["All ages", "18+", "21+"] as const;
 
+// Show = our own show. Promoter = an outside promoter renting the room for their show.
+// Co-pro = a show co-promoted with an outside partner.
+export type DealKind = "show" | "promoter" | "copro";
+export type Partner = { company: string; contact: string; phone: string; email: string };
+export type OfferFile = { path: string; name: string; size: number; uploadedAt: string };
+
+export const DEAL_KIND_LABEL: Record<DealKind, string> = { show: "Show", promoter: "Promoter rental", copro: "Co-pro" };
+export const PARTNER_LABEL: Record<DealKind, string> = { show: "", promoter: "Promoter", copro: "Co-promoter" };
+
 export type Terms = {
+  kind: DealKind;
+  partner: Partner; // the outside promoter / co-promoter
+  rentalFee: number; // promoter rentals: the room rental fee
+  rentalPay: "upfront" | "ticket_sales"; // paid before the show, or taken from ticket sales at settlement
+  files: OfferFile[]; // the partner's offer and other attachments (kept in Supabase Storage)
   dealType: DealType;
   guarantee: number;
   percent: number; // artist %, for vs and door deals
@@ -110,6 +124,11 @@ export function defaultVarCosts(): VarCost[] {
 export function defaultTerms(room = "xbk"): Terms {
   const first = setupsFor(room)[0];
   return {
+    kind: "show",
+    partner: { company: "", contact: "", phone: "", email: "" },
+    rentalFee: 0,
+    rentalPay: "upfront",
+    files: [],
     dealType: "flat",
     guarantee: 0,
     percent: 70,
@@ -154,6 +173,11 @@ export function normalizeTerms(raw: unknown): Terms {
   return {
     ...d,
     ...t,
+    kind: t.kind === "promoter" || t.kind === "copro" ? t.kind : "show",
+    partner: { ...d.partner, ...((t.partner ?? {}) as Partial<Partner>) },
+    rentalFee: num(t.rentalFee),
+    rentalPay: t.rentalPay === "ticket_sales" ? "ticket_sales" : "upfront",
+    files: Array.isArray(t.files) ? (t.files as OfferFile[]) : [],
     dealType: (["flat", "vs", "door", "bonus"] as const).includes(t.dealType as DealType) ? (t.dealType as DealType) : d.dealType,
     pctBasis: t.pctBasis === "gross" ? "gross" : "net",
     guarantee: num(t.guarantee ?? d.guarantee),
@@ -408,7 +432,14 @@ export type OfferHeader = {
 // Plain-text offer, ready to paste into an email.
 export function offerEmailText(h: OfferHeader, t: Terms): string {
   const lines: string[] = [];
-  lines.push(`OFFER: ${h.title}`);
+  lines.push(`${t.kind === "promoter" ? "PROMOTER RENTAL" : t.kind === "copro" ? "CO-PRO OFFER" : "OFFER"}: ${h.title}`);
+  if (t.kind !== "show") {
+    const p = t.partner;
+    lines.push(`${PARTNER_LABEL[t.kind]}: ${[p.company, p.contact, p.phone, p.email].filter(Boolean).join(" · ")}`);
+  }
+  if (t.kind === "promoter") {
+    lines.push(`Rental fee: ${money(t.rentalFee)}, ${t.rentalPay === "upfront" ? "paid up front, before the show" : "taken from ticket sales at settlement"}`);
+  }
   lines.push(`Venue: ${h.roomName}, ${VENUE_ADDRESS}`);
   lines.push(`Date${h.dates.length > 1 ? "s" : ""}: ${h.dates.join("; ")}`);
   if (h.dates.length > 1) lines.push(`(Terms below apply to each date.)`);

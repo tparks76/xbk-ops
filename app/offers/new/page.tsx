@@ -53,7 +53,9 @@ export default async function NewOfferPage({ searchParams }: { searchParams: Sea
   return (
     <>
       <div className="day-head">
-        <h1>New offer: {first.title}</h1>
+        <h1>
+          {first.kind === "promoter" ? "Promoter rental" : first.kind === "copro" ? "Co-pro" : "New offer"}: {first.title}
+        </h1>
         <Link href={`/day/${first.date}`}>Back to {first.date}</Link>
       </div>
       <Flash error={sp.error} />
@@ -66,7 +68,7 @@ export default async function NewOfferPage({ searchParams }: { searchParams: Sea
           agent_name: first.agent_name ?? "",
           agent_company: first.agent_company ?? "",
           agent_email: first.agent_email ?? "",
-          terms: defaultTerms(first.room_id),
+          terms: { ...defaultTerms(first.room_id), kind: first.kind === "promoter" || first.kind === "copro" ? first.kind : "show" },
         }}
         returnTo={`/offers/new?holds=${holds.map((h) => h.id).join(",")}`}
         canEdit

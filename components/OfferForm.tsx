@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import OfferPartner from "@/components/OfferPartner";
+import type { Extracted } from "@/lib/offer-extract";
 import { saveOffer } from "@/lib/actions";
 import { STANDARD_PROVISIONS } from "@/lib/provisions";
 import {
@@ -60,11 +62,84 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
     return [...new Set(pts)].sort((a, b) => a - b).map((n) => budgetAt(t, n));
   }, [t, cap, custom]);
 
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Fill the form from what was read in a partner's offer. Returns what was filled in.
+  const applyExtracted = (x: Extracted): string[] => {
+    const done: string[] = [];
+    const field = (n: string, v?: string) => {
+      const el = formRef.current?.elements.namedItem(n) as HTMLInputElement | null;
+      if (el && v) el.value = v;
+    };
+    if (x.artist) (field("title", x.artist), done.push("artist"));
+    if (x.agent?.name || x.agent?.email) {
+      field("agent_name", x.agent.name);
+      field("agent_company", x.agent.company);
+      field("agent_email", x.agent.email);
+      done.push("agent");
+    }
+    setT((cur) => {
+      const n: Terms = { ...cur };
+      if (x.partner && Object.values(x.partner).some(Boolean)) {
+        n.partner = {
+          company: x.partner.company || cur.partner.company,
+          contact: x.partner.contact || cur.partner.contact,
+          phone: x.partner.phone || cur.partner.phone,
+          email: x.partner.email || cur.partner.email,
+        };
+      }
+      if (x.dealType) n.dealType = x.dealType;
+      if (x.guarantee !== undefined) n.guarantee = x.guarantee;
+      if (x.percent !== undefined) n.percent = x.percent;
+      if (x.pctBasis) n.pctBasis = x.pctBasis;
+      if (x.taxPct !== undefined) n.taxPct = x.taxPct;
+      if (x.rentalFee !== undefined && cur.kind === "promoter") n.rentalFee = x.rentalFee;
+      if (x.tiers?.length) {
+        const qtyKnown = x.tiers.some((y) => y.qty);
+        n.tiers = x.tiers.map((y, i) => ({ name: y.name, price: y.price, qty: y.qty ?? (i === 0 ? x.capacity ?? capacity(cur) : 0) }));
+        if (x.capacity || qtyKnown) {
+          n.setup = "custom";
+          n.setupName = "Custom";
+          n.customCap = x.capacity ?? n.tiers.reduce((s, y) => s + y.qty, 0);
+        }
+      } else if (x.capacity) {
+        n.setup = "custom";
+        n.setupName = "Custom";
+        n.customCap = x.capacity;
+        n.tiers = fitTiers(n.tiers, x.capacity);
+      }
+      if (x.costs?.length) {
+        const costs = [...cur.costs];
+        for (const c of x.costs) {
+          const i = costs.findIndex((y) => y.label.trim().toLowerCase() === c.label.trim().toLowerCase());
+          if (i >= 0) costs[i] = { ...costs[i], amount: c.amount, approved: true };
+          else costs.push({ label: c.label, amount: c.amount, approved: true });
+        }
+        n.costs = costs;
+      }
+      for (const k of ["support", "doors", "showTime", "curfew", "ages", "deposit", "merch", "radius"] as const) {
+        if (x[k]) n[k] = x[k]!;
+      }
+      if (x.notes) n.notes = `${cur.notes ? `${cur.notes}\n\n` : ""}From the partner's offer: ${x.notes}`;
+      return n;
+    });
+    if (x.partner && Object.values(x.partner).some(Boolean)) done.push("partner contact");
+    if (x.dealType || x.guarantee !== undefined || x.percent !== undefined) done.push("deal");
+    if (x.rentalFee !== undefined && t.kind === "promoter") done.push("rental fee");
+    if (x.tiers?.length || x.capacity) done.push("tickets and capacity");
+    if (x.costs?.length) done.push("expenses");
+    if (x.doors || x.showTime || x.curfew) done.push("times");
+    if (x.support || x.ages || x.deposit || x.merch || x.radius) done.push("show details");
+    if (x.notes) done.push("notes");
+    return done;
+  };
+
   const showPct = t.dealType === "vs" || t.dealType === "door";
   const showG = t.dealType !== "door";
 
   return (
     <form
+      ref={formRef}
       action={saveOffer}
       className="offer-layout"
       // Numbers are typed, never nudged: no scroll-wheel or arrow-key changes.
@@ -85,6 +160,9 @@ export default function OfferForm({ rooms = [], offerId, holdIds, roomId, holds,
       <input type="hidden" name="terms" value={JSON.stringify(t)} />
 
       <fieldset className="offer-main" disabled={!canEdit}>
+        {(t.kind !== "show" || unassigned) && (
+          <OfferPartner t={t} setT={setT} canPickKind={unassigned} onApply={applyExtracted} />
+        )}
         <section className="panel">
           <h2>Artist & dates</h2>
           <div className="form-grid">

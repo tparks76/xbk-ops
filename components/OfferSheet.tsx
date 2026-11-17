@@ -8,6 +8,7 @@ import {
   dealText,
   money,
   normalizeTerms,
+  PARTNER_LABEL,
   showsCostsToAgent,
   walkOut,
   VENUE_ADDRESS,
@@ -54,13 +55,35 @@ export default function OfferSheet({ offer, holds: allHolds, signer }: { offer: 
             </div>
           </div>
           <div className="sheet-title">
-            <div>OFFER</div>
+            <div>{t.kind === "promoter" ? "PROMOTER RENTAL" : t.kind === "copro" ? "CO-PRO OFFER" : "OFFER"}</div>
             <div className="muted small">Issued {fmtDate(todayISO())}</div>
           </div>
         </header>
 
         <table className="sheet-table">
           <tbody>
+            {t.kind !== "show" && (
+              <tr>
+                <th>{PARTNER_LABEL[t.kind]}</th>
+                <td>
+                  <strong>{t.partner.company || t.partner.contact}</strong>
+                  {[t.partner.company && t.partner.contact, t.partner.phone, t.partner.email].filter(Boolean).length > 0 && (
+                    <div className="small">
+                      {[t.partner.company ? t.partner.contact : "", t.partner.phone, t.partner.email].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                </td>
+              </tr>
+            )}
+            {t.kind === "promoter" && (
+              <tr>
+                <th>Rental fee</th>
+                <td>
+                  <strong>{money(t.rentalFee)}</strong>{" "}
+                  {t.rentalPay === "upfront" ? "paid up front, before the show" : "taken from ticket sales at settlement"}
+                </td>
+              </tr>
+            )}
             <tr>
               <th>Artist</th>
               <td>

@@ -43,7 +43,9 @@ export default async function OfferPage({ params, searchParams }: Props) {
   return (
     <>
       <div className="day-head">
-        <h1>Offer: {offer.title}</h1>
+        <h1>
+          {terms.kind === "promoter" ? "Promoter rental" : terms.kind === "copro" ? "Co-pro" : "Offer"}: {offer.title}
+        </h1>
         <span className={`badge status-${offer.status}`}>{STATUS_LABEL[offer.status]}</span>
         {offer.sent_at && <span className="muted small">sent {fmtDateTime(offer.sent_at)}</span>}
         <span className="spacer" />

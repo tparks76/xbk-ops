@@ -117,7 +117,11 @@ export default async function DayPage({ params, searchParams }: Props) {
                 ? "Would you like to fill out the rental form for this date?"
                 : pendingForm
                   ? `The ${KIND_LABEL[parseKind(sp.kind ?? "")]} form isn’t set up yet.`
-                  : "Would you like to build an offer for this date?"}
+                  : sp.kind === "promoter"
+                    ? "Would you like to fill out the promoter rental form for this date?"
+                    : sp.kind === "copro"
+                      ? "Would you like to fill out the co-pro form for this date?"
+                      : "Would you like to build an offer for this date?"}
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {!pendingForm && (
@@ -125,7 +129,7 @@ export default async function DayPage({ params, searchParams }: Props) {
                   className="button-link primary-link"
                   href={`${sp.kind === "rental" ? "/rentals/new" : "/offers/new"}?holds=${sp.ask}`}
                 >
-                  {sp.kind === "rental" ? "Yes, open rental form" : "Yes, build offer"}
+                  {sp.kind === "rental" || sp.kind === "promoter" || sp.kind === "copro" ? "Yes, open the form" : "Yes, build offer"}
                 </Link>
               )}
               <Link className="button-link" href={`/day/${date}`}>

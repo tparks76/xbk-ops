@@ -2,7 +2,7 @@ import Link from "next/link";
 import DeleteOffer from "@/components/DeleteOffer";
 import Flash from "@/components/Flash";
 import { fmtDate } from "@/lib/dates";
-import { STATUS_LABEL, dealText, normalizeTerms } from "@/lib/offer";
+import { DEAL_KIND_LABEL, STATUS_LABEL, dealText, normalizeTerms } from "@/lib/offer";
 import { ROOM_FULL } from "@/lib/offer-data";
 import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -83,7 +83,17 @@ export default async function OffersPage({ searchParams }: { searchParams: Searc
                         ? normalizeTerms(o.terms).dateText || "No date"
                         : dates.map((d) => fmtDate(d, { weekday: undefined })).join(", ") || "—"}
                     </td>
-                    <td>{dealText(normalizeTerms(o.terms))}</td>
+                    <td>
+                      {normalizeTerms(o.terms).kind !== "show" && (
+                        <span className={`badge ${normalizeTerms(o.terms).kind}`} style={{ marginRight: 6 }}>
+                          {DEAL_KIND_LABEL[normalizeTerms(o.terms).kind]}
+                        </span>
+                      )}
+                      {dealText(normalizeTerms(o.terms))}
+                      {normalizeTerms(o.terms).kind === "promoter" && normalizeTerms(o.terms).rentalFee > 0 && (
+                        <div className="muted small">Rental fee {`$${normalizeTerms(o.terms).rentalFee.toLocaleString()}`}</div>
+                      )}
+                    </td>
                     <td>
                       <span className={`badge status-${o.status}`}>{STATUS_LABEL[o.status]}</span>
                     </td>

@@ -8,6 +8,7 @@ const TABS = [
   { href: "/settings/venues", label: "Venues to watch" },
   { href: "/settings/drive", label: "Google Drive" },
   { href: "/settings/ticketing", label: "Ticketing" },
+  { href: "/settings/offer-reading", label: "Offer reading" },
 ];
 
 export default function SettingsTabs() {

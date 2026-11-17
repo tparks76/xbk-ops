@@ -7,7 +7,7 @@ export const KIND_TAG: Record<HoldKind, string> = { show: "", rental: "Rental", 
 export const parseKind = (v: string): HoldKind =>
   v === "rental" || v === "promoter" || v === "copro" ? v : "show";
 // Hold types whose form hasn't been built yet.
-export const FORM_PENDING: HoldKind[] = ["promoter", "copro"];
+export const FORM_PENDING: HoldKind[] = [];
 
 export type Room = { id: string; name: string; sort: number };
 

@@ -475,3 +475,13 @@ table.list.artists tr.picked td { background: #fff8e1; }
 .sales-chart .sold { fill: none; stroke: var(--accent); stroke-width: 2.5; }
 .sales-chart .dot { fill: var(--accent); }
 table.list.track td { vertical-align: top; }
+
+/* Promoter rental / co-pro partner section */
+.partner-panel { border-left: 4px solid var(--promoter); }
+.file-list { list-style: none; padding: 0; margin: 4px 0 8px; }
+.file-list li { margin: 3px 0; }
+.file-pick input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.file-pick .button-like { display: inline-block; border: 1px dashed var(--line); border-radius: 6px; padding: 8px 12px; cursor: pointer; background: #fafaf7; font-size: 14px; }
+.file-pick:hover .button-like { background: #f0f0ec; }
+.found-box { margin-top: 10px; background: #f4f8ff; border: 1px solid #cddcf5; border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.found-box ul { margin: 6px 0 10px; padding-left: 18px; }

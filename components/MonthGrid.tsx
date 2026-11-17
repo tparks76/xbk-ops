@@ -152,7 +152,11 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
                 ? "Would you like to fill out the rental form for these dates?"
                 : FORM_PENDING.includes(offerAsk.kind)
                   ? `The ${KIND_LABEL[offerAsk.kind]} form isn’t set up yet.`
-                  : "Would you like to build an offer for these dates?"}
+                  : offerAsk.kind === "promoter"
+                    ? "Would you like to fill out the promoter rental form for these dates?"
+                    : offerAsk.kind === "copro"
+                      ? "Would you like to fill out the co-pro form for these dates?"
+                      : "Would you like to build an offer for these dates?"}
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               {!FORM_PENDING.includes(offerAsk.kind) && (
@@ -162,7 +166,7 @@ export default function MonthGrid({ m, today, weeks, allRooms, rooms, holds, all
                     router.push(`${offerAsk.kind === "rental" ? "/rentals/new" : "/offers/new"}?holds=${offerAsk.ids.join(",")}`)
                   }
                 >
-                  {offerAsk.kind === "rental" ? "Yes, open rental form" : "Yes, build offer"}
+                  {offerAsk.kind === "rental" || offerAsk.kind === "promoter" || offerAsk.kind === "copro" ? "Yes, open the form" : "Yes, build offer"}
                 </button>
               )}
               <button

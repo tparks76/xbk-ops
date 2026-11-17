@@ -140,9 +140,9 @@ export default function HoldCard({
               Rental form
             </Link>
           )}
-          {!offerId && !confirmed && hold.kind === "show" && (
+          {!offerId && !confirmed && hold.kind !== "rental" && (
             <Link className="button-link" href={`/offers/new?holds=${hold.id}`}>
-              Build offer
+              {hold.kind === "promoter" ? "Promoter rental form" : hold.kind === "copro" ? "Co-pro form" : "Build offer"}
             </Link>
           )}
           {emailText && <CopyButton text={emailText} />}
